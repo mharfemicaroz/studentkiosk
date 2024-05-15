@@ -1,0 +1,63 @@
+var express = require("express");
+var bodyParser = require("body-parser");
+var cors = require("cors");
+var cookieParser = require("cookie-parser");
+var userController = require("./controllers/userController");
+var studentController = require("./controllers/studentController");
+var miscController = require("./controllers/miscController");
+
+var app = express();
+var router = express.Router();
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(cors());
+app.use(cookieParser());
+app.use("/api", router);
+
+// Middleware for logging
+router.use((request, response, next) => {
+  console.log("Middleware active");
+  next();
+});
+// User Routes
+router
+  .route("/users")
+  .get(userController.getAllUsers)
+  .post(userController.createUser);
+
+router
+  .route("/users/:id")
+  .get(userController.getUserById)
+  .put(userController.updateUser)
+  .delete(userController.deleteUser);
+
+router.route("/users/filter").post(userController.filterBy);
+
+router.route("/users/login").post(userController.loginUser);
+router.route("/users/logout").post(userController.logoutUser);
+
+// Student Routes
+router
+  .route("/students")
+  .get(studentController.getAllStudents)
+  .post(studentController.createStudent);
+
+router
+  .route("/students/:id")
+  .get(studentController.getStudentById)
+  .put(studentController.updateStudent)
+  .delete(studentController.deleteStudent);
+
+// Special Routes
+router.route("/schedule/view").post(miscController.viewSchedule);
+router.route("/evaluation/view").post(miscController.viewEvaluation);
+router.route("/assessment/view").post(miscController.viewAssessment);
+router.route("/payments/view").post(miscController.viewPayments);
+router.route("/exams/count/:type").get(miscController.countExams);
+
+// Start server
+var port = process.env.PORT || 8081;
+app.listen(port, () => {
+  console.log("API is running at " + port);
+});

@@ -1,0 +1,33 @@
+import axios from "axios";
+
+const BASE_URL = `http://${window.location.hostname}:8081/api/`;
+
+export const viewAssessment = async (formData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}assessment/view/`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Error retrieving schedules from database:", error);
+    throw error;
+  }
+};
+
+export const viewPayments = async (formData) => {
+  try {
+    const response = await axios.post(`${BASE_URL}payments/view/`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Error retrieving schedules from database:", error);
+    throw error;
+  }
+};
+
+export const countExams = async (type) => {
+  try {
+    const response = await axios.get(`${BASE_URL}exams/count/${type}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error retrieving records from database:", error);
+    throw error;
+  }
+};

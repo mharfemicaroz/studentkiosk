@@ -73,10 +73,37 @@ async function countExams(req, res) {
   }
 }
 
+async function getCourse_category(req, res) {
+  try {
+    const { course, major } = req.body;
+    let dt = await views.queryDatabase(
+      `select * from course where coursecode = @Course and major = @Major`,
+      [
+        { name: "Course", type: sql.NVarChar, value: course },
+        { name: "Major", type: sql.NVarChar, value: major },
+      ]
+    );
+    res.json(dt[0]);
+  } catch (error) {
+    res.status(500).send("Error retrieving records from database");
+  }
+}
+
+async function getDefSYSEM(req, res) {
+  try {
+    let dt = await views.queryDatabase(`select * from semsy_default`);
+    res.json(dt[0]);
+  } catch (error) {
+    res.status(500).send("Error retrieving records from database");
+  }
+}
+
 module.exports = {
   viewSchedule,
   viewEvaluation,
   viewAssessment,
   viewPayments,
   countExams,
+  getCourse_category,
+  getDefSYSEM,
 };

@@ -55,6 +55,8 @@ router.route("/evaluation/view").post(miscController.viewEvaluation);
 router.route("/assessment/view").post(miscController.viewAssessment);
 router.route("/payments/view").post(miscController.viewPayments);
 router.route("/exams/count/:type").get(miscController.countExams);
+router.route("/course/category").get(miscController.getCourse_category);
+router.route("/config/defsysem").get(miscController.getDefSYSEM);
 
 // Start server
 var port = process.env.PORT || 8081;

@@ -1,6 +1,6 @@
 <template>
   <div class="row mb-3">
-    <div class="col-3">
+    <div class="col-6">
       <div class="container">
         <form class="form-inline">
           <div class="form-group">
@@ -16,15 +16,6 @@
               </option>
             </select>
           </div>
-          <button
-            class="btn"
-            type="submit"
-            name="action"
-            style="font-size: 13px; background-color: #26a69a"
-          >
-            SUBMIT
-            <i class="mdi mdi-send"></i>
-          </button>
         </form>
       </div>
     </div>
@@ -62,9 +53,12 @@
 <script>
 import { useAuthStore } from "@/stores/authStore";
 import { viewSchedule } from "@/services/scheduleServices";
+import { viewSYSEM } from "@/services/configServices";
 export default {
   data() {
     return {
+      sy: "",
+      sem: "",
       studentno: null,
       schedules: [],
       semesters: [],
@@ -78,10 +72,21 @@ export default {
     async loadData() {
       const authStore = useAuthStore();
       this.studentno = authStore.user[0].studentno;
+      let type = "";
+
+      const config = await viewSYSEM();
+      this.sy = config[0].sy;
+      this.sem = config[0].sem;
+      if (authStore.user[0].category.toLowerCase() === "college") {
+        type = "college";
+      } else {
+        type = "shs_jhs";
+        this.sem = "SY";
+      }
       this.schedules = await viewSchedule({
         studentno: this.studentno,
-        sy: "2023-2024",
-        semester: "2nd semester",
+        sy: this.sy,
+        semester: this.sem,
       });
     },
     populateSemesters() {

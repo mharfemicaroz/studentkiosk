@@ -19,9 +19,11 @@
               <td style="width: 90%">{{ item.name }}</td>
               <td style="width: 10%; text-align: right">
                 {{
-                  item.remarks !== "Per Sy"
-                    ? item.amount * totalUnits
-                    : item.amount
+                  Math.round(
+                    (item.remarks !== "Per SY"
+                      ? item.amount * totalUnits
+                      : item.amount) * 100
+                  ) / 100
                 }}
               </td>
             </tr>
@@ -32,11 +34,14 @@
               <td>Sub-total:</td>
               <td style="text-align: right">
                 {{
-                  assessment.find((o) => o.type === "tuition")?.remarks !==
-                  "Per Sy"
-                    ? assessment.find((o) => o.type === "tuition")?.amount *
-                      totalUnits
-                    : assessment.find((o) => o.type === "tuition")?.amount
+                  Math.round(
+                    (assessment.find((o) => o.type === "tuition")?.remarks !==
+                    "Per SY"
+                      ? assessment.find((o) => o.type === "tuition")?.amount *
+                        totalUnits
+                      : assessment.find((o) => o.type === "tuition")?.amount) *
+                      100
+                  ) / 100
                 }}
               </td>
             </tr>
@@ -154,7 +159,7 @@
                       )
                       .reduce((acc, item) => acc + parseFloat(item.amount), 0) +
                       (assessment.find((o) => o.type === "tuition")?.remarks !==
-                      "Per Sy"
+                      "Per SY"
                         ? assessment.find((o) => o.type === "tuition")?.amount *
                           totalUnits
                         : assessment.find((o) => o.type === "tuition")
@@ -237,9 +242,12 @@ import {
   countExams,
 } from "@/services/financeServices";
 import { viewSchedule } from "@/services/scheduleServices";
+import { viewSYSEM } from "@/services/configServices";
 export default {
   data() {
     return {
+      sy: "s",
+      sem: "",
       installment: 0,
       assessment: [],
       payments: [],
@@ -250,10 +258,14 @@ export default {
     async loadData() {
       const authStore = useAuthStore();
       let type = "";
+      const config = await viewSYSEM();
+      this.sy = config[0].sy;
+      this.sem = config[0].sem;
       if (authStore.user[0].category.toLowerCase() === "college") {
         type = "college";
       } else {
         type = "shs_jhs";
+        this.sem = "SY";
       }
 
       this.installment = parseFloat((await countExams(type)).n);
@@ -262,16 +274,16 @@ export default {
         crs: authStore.user[0].coursecode,
         mjr: authStore.user[0].major,
         lvl: authStore.user[0].yrlevel,
-        sy: "2023-2024",
-        sem: "2nd Semester",
+        sy: this.sy,
+        sem: this.sem,
       });
       this.schedules = await viewSchedule({
         studentno: authStore.user[0].studentno,
-        sy: "2023-2024",
-        semester: "2nd semester",
+        sy: this.sy,
+        semester: this.sem,
       });
       this.payments = await viewPayments({
-        transid: authStore.user[0].studentno + "2023-20242NDSEMESTER",
+        transid: authStore.user[0].studentno + `${this.sy}${this.sem}`,
       });
     },
     loadScript(scriptName, scriptSource) {
@@ -293,7 +305,7 @@ export default {
           .filter((o) => o.type !== "tuition" && o?.remarks === "n/a")
           .reduce((acc, item) => acc + parseFloat(item.amount), 0) +
           (this.assessment.find((o) => o.type === "tuition")?.remarks !==
-          "Per Sy"
+          "Per SY"
             ? this.assessment.find((o) => o.type === "tuition")?.amount *
               this.totalUnits
             : this.assessment.find((o) => o.type === "tuition")?.amount)) /
@@ -323,7 +335,7 @@ export default {
             .filter((o) => o.type !== "tuition" && o?.remarks === "n/a")
             .reduce((acc, item) => acc + parseFloat(item.amount), 0) +
             (this.assessment.find((o) => o.type === "tuition")?.remarks !==
-            "Per Sy"
+            "Per SY"
               ? this.assessment.find((o) => o.type === "tuition")?.amount *
                 this.totalUnits
               : this.assessment.find((o) => o.type === "tuition")?.amount) -

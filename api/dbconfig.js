@@ -1,10 +1,12 @@
+require("dotenv").config();
+
 const config = {
-  user: "usepadmin",
-  password: "Euler143!",
-  server: "localhost",
-  database: "ndci_db",
+  user: process.env.USER,
+  password: process.env.PASSWORD,
+  server: process.env.SERVER,
+  database: process.env.DATABASE,
   options: {
-    encrypt: false,
+    encrypt: process.env.ENCRYPT === "true",
   },
 };
 

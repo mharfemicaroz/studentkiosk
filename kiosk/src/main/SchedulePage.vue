@@ -8,6 +8,7 @@
             <select
               id="semester"
               class="form-control mr-2"
+              v-model="semester"
               @change="handleSemesterChange"
             >
               <option value="">Select Semester/Period</option>
@@ -64,6 +65,7 @@ export default {
       sy: "",
       sem: "",
       type: "",
+      semester: "",
       studentno: null,
       schedules: [],
       semesters: [],
@@ -94,14 +96,19 @@ export default {
     },
     handleSemesterChange(event) {
       const selectedSemester = event.target.value;
-      if (selectedSemester.includes("Summer")) {
-        this.sem = "Summer";
-        this.sy = selectedSemester.split(" ")[1];
+      if (this.type === "college") {
+        if (selectedSemester.includes("Summer")) {
+          this.sem = "Summer";
+          this.sy = selectedSemester.split(" ")[1];
+        } else {
+          const parts = selectedSemester.split(" ");
+          this.sem = `${parts[0]} ${parts[1]}`;
+          this.sy = parts[2];
+        }
       } else {
-        const parts = selectedSemester.split(" ");
-        this.sem = `${parts[0]} ${parts[1]}`;
-        this.sy = parts[2];
+        this.sy = selectedSemester;
       }
+
       this.loadData();
     },
     populateSemesters() {
@@ -112,10 +119,12 @@ export default {
       for (let year = currentYear; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
+          this.semester = `${currentYear - 1}-${currentYear}`;
         } else {
           semesters.push(`Summer ${year - 1}-${year}`);
           semesters.push(`2nd Semester ${year - 1}-${year}`);
           semesters.push(`1st Semester ${year - 1}-${year}`);
+          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
         }
       }
 

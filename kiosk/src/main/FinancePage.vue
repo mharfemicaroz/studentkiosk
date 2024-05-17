@@ -8,6 +8,7 @@
             <select
               id="semester"
               class="form-control mr-2"
+              v-model="semester"
               @change="handleSemesterChange"
             >
               <option value="">Select Semester/Period</option>
@@ -273,6 +274,8 @@ export default {
     return {
       sy: "",
       sem: "",
+      type: "",
+      semester: "",
       installment: 0,
       assessment: [],
       payments: [],
@@ -283,16 +286,15 @@ export default {
   methods: {
     async loadData() {
       const authStore = useAuthStore();
-      let type = "";
 
       if (authStore.user[0].category.toLowerCase() === "college") {
-        type = "college";
+        this.type = "college";
       } else {
-        type = "shs_jhs";
+        this.type = "shs_jhs";
         this.sem = "SY";
       }
 
-      this.installment = parseFloat((await countExams(type)).n);
+      this.installment = parseFloat((await countExams(this.type)).n);
 
       this.assessment = await viewAssessment({
         crs: authStore.user[0].coursecode,
@@ -318,10 +320,12 @@ export default {
       for (let year = currentYear; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
+          this.semester = `${currentYear - 1}-${currentYear}`;
         } else {
           semesters.push(`Summer ${year - 1}-${year}`);
           semesters.push(`2nd Semester ${year - 1}-${year}`);
           semesters.push(`1st Semester ${year - 1}-${year}`);
+          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
         }
       }
 
@@ -329,14 +333,19 @@ export default {
     },
     handleSemesterChange(event) {
       const selectedSemester = event.target.value;
-      if (selectedSemester.includes("Summer")) {
-        this.sem = "Summer";
-        this.sy = selectedSemester.split(" ")[1];
+      if (this.type === "college") {
+        if (selectedSemester.includes("Summer")) {
+          this.sem = "Summer";
+          this.sy = selectedSemester.split(" ")[1];
+        } else {
+          const parts = selectedSemester.split(" ");
+          this.sem = `${parts[0]} ${parts[1]}`;
+          this.sy = parts[2];
+        }
       } else {
-        const parts = selectedSemester.split(" ");
-        this.sem = `${parts[0]} ${parts[1]}`;
-        this.sy = parts[2];
+        this.sy = selectedSemester;
       }
+
       this.loadData();
     },
     loadScript(scriptName, scriptSource) {

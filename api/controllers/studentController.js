@@ -43,8 +43,8 @@ async function updateStudent(req, res) {
       req.params.id,
       req.body
     );
-    if (updatedStudent[0] && updatedStudent[0].length > 0) {
-      res.json(updatedStudent[0]); // Return the updated student data
+    if (updatedStudent) {
+      res.json({ status: "ok" }); // Return the updated student data
     } else {
       res.status(404).send("No student was updated"); // Handle the case where no student was updated
     }

@@ -43,13 +43,26 @@ async function insertInto(tableName, data) {
 
 async function updateById(tableName, id, data) {
   const updates = Object.keys(data).map((field) => `${field} = @${field}`);
-  const parameters = Object.keys(data).map((field) => ({
-    name: field,
-    type: sql.NVarChar,
-    value: data[field],
-  }));
+  const parameters = Object.keys(data).map((field) => {
+    let type;
+    let value = data[field];
+
+    if (typeof value === "number" && Number.isInteger(value)) {
+      type = sql.Int;
+    } else if (typeof value === "number" && !Number.isInteger(value)) {
+      type = sql.Float;
+    } else if (typeof value === "boolean") {
+      type = sql.Bit;
+    } else {
+      type = sql.NVarChar;
+    }
+
+    return { name: field, type, value };
+  });
+
   parameters.push({ name: "id", type: sql.Int, value: id }); // For the WHERE clause
   const query = `UPDATE ${tableName} SET ${updates.join(", ")} WHERE id = @id`;
+
   return await queryDatabase(query, parameters);
 }
 

@@ -1,4 +1,29 @@
 <template>
+  <div class="row mb-3">
+    <div class="col-6">
+      <div class="container">
+        <form class="form-inline">
+          <div class="form-group">
+            <label for="semester" class="sr-only">Select Semester/Period</label>
+            <select
+              id="semester"
+              class="form-control mr-2"
+              @change="handleSemesterChange"
+            >
+              <option value="">Select Semester/Period</option>
+              <option
+                v-for="semester in semesters"
+                :value="semester"
+                :key="semester"
+              >
+                {{ semester }}
+              </option>
+            </select>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
   <div class="row">
     <div class="col-md-6">
       <h6>Assessment Details</h6>
@@ -246,21 +271,20 @@ import { viewSYSEM } from "@/services/configServices";
 export default {
   data() {
     return {
-      sy: "s",
+      sy: "",
       sem: "",
       installment: 0,
       assessment: [],
       payments: [],
       schedules: [],
+      semesters: [],
     };
   },
   methods: {
     async loadData() {
       const authStore = useAuthStore();
       let type = "";
-      const config = await viewSYSEM();
-      this.sy = config[0].sy;
-      this.sem = config[0].sem;
+
       if (authStore.user[0].category.toLowerCase() === "college") {
         type = "college";
       } else {
@@ -285,6 +309,35 @@ export default {
       this.payments = await viewPayments({
         transid: authStore.user[0].studentno + `${this.sy}${this.sem}`,
       });
+    },
+    populateSemesters() {
+      const currentYear = new Date().getFullYear();
+      const startYear = currentYear - 10;
+      const semesters = [];
+
+      for (let year = currentYear; year >= startYear; year--) {
+        if (this.type === "shs_jhs") {
+          semesters.push(`${year - 1}-${year}`);
+        } else {
+          semesters.push(`Summer ${year - 1}-${year}`);
+          semesters.push(`2nd Semester ${year - 1}-${year}`);
+          semesters.push(`1st Semester ${year - 1}-${year}`);
+        }
+      }
+
+      this.semesters = semesters;
+    },
+    handleSemesterChange(event) {
+      const selectedSemester = event.target.value;
+      if (selectedSemester.includes("Summer")) {
+        this.sem = "Summer";
+        this.sy = selectedSemester.split(" ")[1];
+      } else {
+        const parts = selectedSemester.split(" ");
+        this.sem = `${parts[0]} ${parts[1]}`;
+        this.sy = parts[2];
+      }
+      this.loadData();
     },
     loadScript(scriptName, scriptSource) {
       const scriptId = `script-${scriptName}`;
@@ -355,7 +408,11 @@ export default {
     },
   },
   async created() {
+    const config = await viewSYSEM();
+    this.sy = config[0].sy;
+    this.sem = config[0].sem;
     this.loadData();
+    this.populateSemesters();
   },
   mounted() {
     this.loadScript("script1", "/js/vendor.min.js");

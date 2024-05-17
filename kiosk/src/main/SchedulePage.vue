@@ -5,7 +5,11 @@
         <form class="form-inline">
           <div class="form-group">
             <label for="semester" class="sr-only">Select Semester/Period</label>
-            <select id="semester" class="form-control mr-2">
+            <select
+              id="semester"
+              class="form-control mr-2"
+              @change="handleSemesterChange"
+            >
               <option value="">Select Semester/Period</option>
               <option
                 v-for="semester in semesters"
@@ -59,12 +63,16 @@ export default {
     return {
       sy: "",
       sem: "",
+      type: "",
       studentno: null,
       schedules: [],
       semesters: [],
     };
   },
   async created() {
+    const config = await viewSYSEM();
+    this.sy = config[0].sy;
+    this.sem = config[0].sem;
     this.loadData();
     this.populateSemesters();
   },
@@ -72,15 +80,10 @@ export default {
     async loadData() {
       const authStore = useAuthStore();
       this.studentno = authStore.user[0].studentno;
-      let type = "";
-
-      const config = await viewSYSEM();
-      this.sy = config[0].sy;
-      this.sem = config[0].sem;
       if (authStore.user[0].category.toLowerCase() === "college") {
-        type = "college";
+        this.type = "college";
       } else {
-        type = "shs_jhs";
+        this.type = "shs_jhs";
         this.sem = "SY";
       }
       this.schedules = await viewSchedule({
@@ -89,15 +92,31 @@ export default {
         semester: this.sem,
       });
     },
+    handleSemesterChange(event) {
+      const selectedSemester = event.target.value;
+      if (selectedSemester.includes("Summer")) {
+        this.sem = "Summer";
+        this.sy = selectedSemester.split(" ")[1];
+      } else {
+        const parts = selectedSemester.split(" ");
+        this.sem = `${parts[0]} ${parts[1]}`;
+        this.sy = parts[2];
+      }
+      this.loadData();
+    },
     populateSemesters() {
       const currentYear = new Date().getFullYear();
       const startYear = currentYear - 10;
       const semesters = [];
 
       for (let year = currentYear; year >= startYear; year--) {
-        semesters.push(`Summer ${year}`);
-        semesters.push(`2nd Semester ${year}-${year}`);
-        semesters.push(`1st Semester ${year}-${year}`);
+        if (this.type === "shs_jhs") {
+          semesters.push(`${year - 1}-${year}`);
+        } else {
+          semesters.push(`Summer ${year - 1}-${year}`);
+          semesters.push(`2nd Semester ${year - 1}-${year}`);
+          semesters.push(`1st Semester ${year - 1}-${year}`);
+        }
       }
 
       this.semesters = semesters;

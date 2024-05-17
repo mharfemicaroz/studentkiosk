@@ -47,6 +47,7 @@ router
   .route("/students/:id")
   .get(studentController.getStudentById)
   .put(studentController.updateStudent)
+  .patch(studentController.updateStudent)
   .delete(studentController.deleteStudent);
 
 // Special Routes

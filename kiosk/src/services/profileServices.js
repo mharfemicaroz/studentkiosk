@@ -11,3 +11,13 @@ export const getStudentById = async (id) => {
     throw error;
   }
 };
+
+export const updateStudentById = async (id, formData) => {
+  try {
+    const response = await axios.patch(`${BASE_URL}students/${id}`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating records in the database:", error);
+    throw error;
+  }
+};

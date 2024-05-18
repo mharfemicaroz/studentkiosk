@@ -9,9 +9,16 @@ var miscController = require("./controllers/miscController");
 var app = express();
 var router = express.Router();
 
+const corsOptions = {
+  origin: "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use("/api", router);
 

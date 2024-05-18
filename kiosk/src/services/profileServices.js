@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = `http://ndci-api.portmap.host:20300/api/`;
+const BASE_URL = `http://${window.location.hostname}:20300/api/`;
 
 export const getStudentById = async (id) => {
   try {

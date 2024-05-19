@@ -43,10 +43,9 @@ export const useAuthStore = defineStore({
     },
     async logout() {
       try {
-        await logoutUser(this.user.token);
-        // Perform any necessary cleanup or state changes after logout
         this.user = null;
-        saveState("user", null); // Remove the user state from localStorage
+        saveState("user", null);
+        await logoutUser(this.user.token);
       } catch (error) {
         // Handle error
       }

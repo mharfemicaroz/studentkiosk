@@ -269,7 +269,7 @@ export default {
       const authStore = useAuthStore();
       const token = authStore.user.token;
       await authStore.logout(token).then((result) => {
-        this.$router.push(`/signin`);
+        this.$router.push(`/`);
       });
     },
     validateOldPassword() {

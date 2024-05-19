@@ -26,5 +26,5 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
-  base: "https://kiosk.ndci.edu.ph/", // Ensure this is correct for your deployment environment
+  base: "./", // Ensure this is correct for your deployment environment
 });

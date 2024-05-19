@@ -247,6 +247,10 @@
 </template>
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import { useConfigStore } from "@/stores/configStore";
+import { useFinanceStore } from "@/stores/financeStore";
+import { useScheduleStore } from "@/stores/scheduleStore";
+import { useEvaluationStore } from "@/stores/evaluationStore";
 import { updateStudentById } from "@/services/profileServices";
 import ToasterComponent from "../common/ToasterComponent.vue";
 export default {
@@ -271,10 +275,21 @@ export default {
   methods: {
     async logout() {
       const authStore = useAuthStore();
+      const configStore = useConfigStore();
+      const financeStore = useFinanceStore();
+      const scheduleStore = useScheduleStore();
+      const evaluationStore = useEvaluationStore();
       const token = authStore.user.token;
 
       try {
         this.loading = true;
+        configStore.clearConfig();
+        evaluationStore.clearEvaluation();
+        scheduleStore.clearSchedules();
+        financeStore.clearInstallment();
+        financeStore.clearAssessment();
+        financeStore.clearSchedule();
+        financeStore.clearPayment();
         await authStore.logout(token).then((result) => {
           this.$router.push(`/`);
         });

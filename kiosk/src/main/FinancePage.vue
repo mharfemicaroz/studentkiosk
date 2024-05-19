@@ -372,10 +372,12 @@ export default {
         this.loading = false;
       }
 
-      this.semester =
-        userCategory === "college" || userCategory === "techvoch"
-          ? `${this.sem} ${currentYear - 1}-${currentYear}`
-          : `SY ${currentYear - 1}-${currentYear}`;
+      if (!this.activateSelect) {
+        this.semester =
+          userCategory === "college" || userCategory === "techvoch"
+            ? `${this.sem} ${currentYear - 1}-${currentYear}`
+            : `${currentYear - 1}-${currentYear}`;
+      }
     },
 
     populateSemesters() {
@@ -397,6 +399,7 @@ export default {
     },
     handleSemesterChange(event) {
       this.activateSelect = true;
+      this.loading = true;
       const selectedSemester = event.target.value;
       if (this.type === "college") {
         if (selectedSemester.includes("Summer")) {

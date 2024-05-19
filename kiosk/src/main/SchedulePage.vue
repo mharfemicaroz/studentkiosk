@@ -123,19 +123,22 @@ export default {
           scheduleStore.setSchedules(this.schedules);
           configStore.setConfig([{ sy: this.sy, sem: this.sem }]);
         }
-
-        this.semester =
-          userCategory === "college" || userCategory === "techvoch"
-            ? `${this.sem} ${currentYear - 1}-${currentYear}`
-            : `SY ${currentYear - 1}-${currentYear}`;
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
         this.loading = false;
       }
+
+      if (!this.activateSelect) {
+        this.semester =
+          userCategory === "college" || userCategory === "techvoch"
+            ? `${this.sem} ${currentYear - 1}-${currentYear}`
+            : `${currentYear - 1}-${currentYear}`;
+      }
     },
     handleSemesterChange(event) {
       this.activateSelect = true;
+      this.loading = true;
       const selectedSemester = event.target.value;
       if (this.type === "college") {
         if (selectedSemester.includes("Summer")) {

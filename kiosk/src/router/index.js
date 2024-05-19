@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import SignIn from "../auth/SigninPage.vue";
 import IndexPage from "../main/IndexPage.vue";
+import Error403 from "../main/ErrorPage.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,7 +20,14 @@ const router = createRouter({
       path: "/index",
       name: "IndexPage",
       component: IndexPage,
+      meta: {
+        requiresAuth: true,
+      },
       children: [
+        {
+          path: "",
+          redirect: "index/schedule",
+        },
         {
           path: "schedule",
           name: "Class Schedule",
@@ -42,6 +50,15 @@ const router = createRouter({
         },
       ],
     },
+    {
+      path: "/403",
+      name: "error403",
+      component: Error403,
+    },
+    {
+      path: "/:catchAll(.*)",
+      redirect: { name: "error403" },
+    },
   ],
 });
 
@@ -58,6 +75,13 @@ router.beforeEach((to, from, next) => {
   } else {
     next();
   }
+});
+
+router.addRoute({
+  path: "/403/:from*",
+  name: "403",
+  component: Error403,
+  props: (route) => ({ from: route.params.from || "/" }),
 });
 
 export default router;

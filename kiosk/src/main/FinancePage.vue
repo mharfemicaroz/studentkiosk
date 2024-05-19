@@ -335,7 +335,9 @@ export default {
             semester: this.sem,
           });
           this.payments = await viewPayments({
-            transid: authStore.user[0].studentno + `${this.sy}${this.sem}`,
+            transid:
+              authStore.user[0].studentno +
+              `${this.sy}${this.sem.trim().replace(/\s+/g, "").toUpperCase()}`,
           });
 
           financeStore.setInstallment(this.installment);

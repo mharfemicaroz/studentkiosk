@@ -54,7 +54,7 @@ async function viewPayments(req, res) {
   try {
     const { transid } = req.body;
     const dt = await views.queryDatabase(
-      "select id,FORMAT(dateoftrans, 'MMMM, dd yyyy HH:mm:ss') as formatdate, dateoftrans,units,balance,cash,orno,remarks, (select distinct username from users where id = sa_transaction.user_id) as cashier, CASE WHEN STR(or_id) is not null then 'RELEASED' else STR(or_id) end as or_id from sa_transaction where deleted = 0 and trans_id = @Transid and _log <> 'PAY_OTHER' order by id desc",
+      "select id,FORMAT(dateoftrans, 'MMMM, dd yyyy HH:mm:ss') as formatdate, dateoftrans,units,balance,cash,orno,remarks, _log, (select distinct username from users where id = sa_transaction.user_id) as cashier, CASE WHEN STR(or_id) is not null then 'RELEASED' else STR(or_id) end as or_id from sa_transaction where deleted = 0 and trans_id = @Transid and _log <> 'PAY_OTHER' order by id desc",
       [{ name: "Transid", type: sql.NVarChar, value: transid }]
     );
     res.json(dt[0]);

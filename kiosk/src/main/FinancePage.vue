@@ -29,7 +29,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-4">
       <h6>Assessment Details</h6>
       <div class="table-responsive">
         <table class="table">
@@ -202,7 +202,7 @@
         </table>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-8">
       <h6>Payment History</h6>
       <div class="table-responsive">
         <table class="table mb-0">
@@ -211,6 +211,8 @@
               <th scope="col">OR No</th>
               <th scope="col">Cashier</th>
               <th scope="col">Date</th>
+              <th scope="col">Type</th>
+              <th scope="col">Remarks</th>
               <th style="text-align: right" scope="col">Amount</th>
             </tr>
           </thead>
@@ -219,40 +221,49 @@
               <td>{{ item.orno }}</td>
               <td>{{ item.cashier }}</td>
               <td>{{ item.formatdate }}</td>
+              <td>{{ item._log }}</td>
+              <td>{{ item.remarks }}</td>
               <td style="text-align: right">{{ item.cash }}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="3">Sub-total:</td>
+              <td colspan="5">Sub-total:</td>
               <td style="text-align: right">
                 {{ net }}
               </td>
             </tr>
             <tr>
-              <td colspan="3">Balance:</td>
+              <td colspan="5">Balance:</td>
               <td style="text-align: right">
                 {{ balance }}
               </td>
             </tr>
           </tfoot>
         </table>
+      </div>
+      <h6>Installment</h6>
+      <div class="table-responsive">
         <table class="table mb-0">
           <thead class="thead-light">
             <tr>
-              <th scope="col" colspan="3">Installment</th>
+              <th scope="col">Period</th>
+              <th scope="col">Status</th>
+              <th scope="col">Payment</th>
+              <th scope="col" style="text-align: right">Balance</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(installment, index) in installmentDetails" :key="index">
               <td>{{ installment.period }}</td>
               <td>{{ installment.paid ? "Paid" : "Not Paid" }}</td>
-              <td style="text-align: right">{{ installment.amount }}</td>
+              <td>{{ installment.amount }}</td>
+              <td style="text-align: right">{{ installment.balance }}</td>
             </tr>
           </tbody>
           <tfoot>
             <tr>
-              <td colspan="2">Balance:</td>
+              <td colspan="3">Balance:</td>
               <td style="text-align: right">
                 {{ balance }}
               </td>
@@ -415,16 +426,27 @@ export default {
           "Per SY"
             ? this.assessment.find((o) => o.type === "tuition")?.amount *
               this.totalUnits
-            : this.assessment.find((o) => o.type === "tuition")?.amount)) /
+            : this.assessment.find((o) => o.type === "tuition")?.amount) -
+          this.payments
+            .filter((o) => o._log === "DOWN_PAYMENT")
+            .reduce((acc, item) => acc + parseFloat(item.cash), 0)) /
         this.installment;
 
       const details = [];
+      let runningBalance = installmentAmount * this.installment;
+
       for (let i = 0; i < this.installment; i++) {
         const paid = this.net >= (i + 1) * installmentAmount;
+        const amount = Math.round(installmentAmount * 100) / 100;
+        runningBalance -= Math.round(amount * 100) / 100;
         details.push({
-          amount: Math.round(installmentAmount * 100) / 100,
+          amount: amount,
           paid: paid,
           period: `${i + 1}${["st", "nd", "rd"][((i + 1) % 10) - 1] || "th"}`,
+          balance:
+            Math.round(Math.round(runningBalance * 100) / 100) <= 0
+              ? 0
+              : Math.round(runningBalance * 100) / 100,
         });
       }
       return details;

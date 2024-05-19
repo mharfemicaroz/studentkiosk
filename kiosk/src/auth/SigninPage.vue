@@ -173,7 +173,7 @@ export default {
 }
 
 .container-fluid.login-background {
-  background-image: url(src/assets/bg.jpg);
+  background-image: url(/images/bg.jpg);
   background-repeat: no-repeat;
   background-position: center center;
   background-attachment: fixed;

@@ -76,6 +76,7 @@ export default {
       schedules: [],
       semesters: [],
       loading: true,
+      activateSelect: false,
     };
   },
   async created() {
@@ -89,17 +90,30 @@ export default {
       const scheduleStore = useScheduleStore();
       const configStore = useConfigStore();
       this.studentno = authStore.user[0].studentno;
+      const userCategory = authStore.user[0].category.toLowerCase();
+
+      this.type =
+        userCategory === "college" || userCategory === "techvoch"
+          ? "college"
+          : "shs_jhs";
 
       try {
-        if (scheduleStore.schedules && configStore.configs) {
+        if (
+          scheduleStore.schedules &&
+          configStore.configs &&
+          !this.activateSelect
+        ) {
           this.schedules = scheduleStore.schedules;
           const config = configStore.configs;
           this.sy = config[0].sy;
           this.sem = config[0].sem;
         } else {
-          const config = await viewSYSEM();
-          this.sy = config[0].sy;
-          this.sem = config[0].sem;
+          if (!this.activateSelect) {
+            const config = await viewSYSEM();
+            this.sy = config[0].sy;
+            this.sem = config[0].sem;
+          }
+
           this.schedules = await viewSchedule({
             studentno: this.studentno,
             sy: this.sy,
@@ -110,14 +124,10 @@ export default {
           configStore.setConfig([{ sy: this.sy, sem: this.sem }]);
         }
 
-        if (authStore.user[0].category.toLowerCase() === "college") {
-          this.type = "college";
-          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
-        } else {
-          this.type = "shs_jhs";
-          this.sem = "SY";
-          this.semester = `${currentYear - 1}-${currentYear}`;
-        }
+        this.semester =
+          userCategory === "college" || userCategory === "techvoch"
+            ? `${this.sem} ${currentYear - 1}-${currentYear}`
+            : `SY ${currentYear - 1}-${currentYear}`;
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -125,6 +135,7 @@ export default {
       }
     },
     handleSemesterChange(event) {
+      this.activateSelect = true;
       const selectedSemester = event.target.value;
       if (this.type === "college") {
         if (selectedSemester.includes("Summer")) {

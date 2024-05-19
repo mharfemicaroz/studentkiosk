@@ -298,6 +298,7 @@ export default {
       schedules: [],
       semesters: [],
       loading: true,
+      activateSelect: false,
     };
   },
   methods: {
@@ -306,18 +307,20 @@ export default {
       const authStore = useAuthStore();
       const configStore = useConfigStore();
       const financeStore = useFinanceStore();
+      const userCategory = authStore.user[0].category.toLowerCase();
 
-      if (authStore.user[0].category.toLowerCase() === "college") {
-        this.type = "college";
-      } else {
-        this.type = "shs_jhs";
-      }
+      this.type =
+        userCategory === "college" || userCategory === "techvoch"
+          ? "college"
+          : "shs_jhs";
+
       try {
         if (
           configStore.configs &&
           financeStore.installment &&
           financeStore.schedule &&
-          financeStore.assessment
+          financeStore.assessment &&
+          !this.activateSelect
         ) {
           const config = configStore.configs;
           this.sy = config[0].sy;
@@ -328,23 +331,29 @@ export default {
           this.schedules = financeStore.schedule;
           this.payments = financeStore.payment;
         } else {
-          const config = await viewSYSEM();
-          this.sy = config[0].sy;
-          this.sem = config[0].sem;
+          if (!this.activateSelect) {
+            const config = await viewSYSEM();
+            this.sy = config[0].sy;
+            this.sem = config[0].sem;
+          }
 
-          this.installment = parseFloat((await countExams(this.type)).n);
-          this.assessment = await viewAssessment({
+          const courseDetails = {
             crs: authStore.user[0].coursecode,
             mjr: authStore.user[0].major,
             lvl: authStore.user[0].yrlevel,
             sy: this.sy,
             sem: this.sem,
-          });
-          this.schedules = await viewSchedule({
+          };
+
+          const studentDetails = {
             studentno: authStore.user[0].studentno,
             sy: this.sy,
             semester: this.sem,
-          });
+          };
+
+          this.installment = parseFloat((await countExams(this.type)).n);
+          this.assessment = await viewAssessment(courseDetails);
+          this.schedules = await viewSchedule(studentDetails);
           this.payments = await viewPayments({
             transid:
               authStore.user[0].studentno +
@@ -363,13 +372,12 @@ export default {
         this.loading = false;
       }
 
-      if (authStore.user[0].category.toLowerCase() === "college") {
-        this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
-      } else {
-        this.sem = "SY";
-        this.semester = `${currentYear - 1}-${currentYear}`;
-      }
+      this.semester =
+        userCategory === "college" || userCategory === "techvoch"
+          ? `${this.sem} ${currentYear - 1}-${currentYear}`
+          : `SY ${currentYear - 1}-${currentYear}`;
     },
+
     populateSemesters() {
       const currentYear = new Date().getFullYear();
       const startYear = currentYear - 10;
@@ -388,6 +396,7 @@ export default {
       this.semesters = semesters;
     },
     handleSemesterChange(event) {
+      this.activateSelect = true;
       const selectedSemester = event.target.value;
       if (this.type === "college") {
         if (selectedSemester.includes("Summer")) {

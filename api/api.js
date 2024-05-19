@@ -75,7 +75,7 @@ var certificate = fs.readFileSync("./credentials/cert.pem", "utf8");
 var credentials = { key: privateKey, cert: certificate };
 
 // Start HTTPS server
-var port = process.env.PORT || 8081;
+var port = process.env.PORT || 20300;
 https.createServer(credentials, app).listen(port, () => {
   console.log("API is running at " + port);
 });

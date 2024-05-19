@@ -2,6 +2,8 @@ var express = require("express");
 var bodyParser = require("body-parser");
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
+var fs = require("fs");
+var https = require("https");
 var userController = require("./controllers/userController");
 var studentController = require("./controllers/studentController");
 var miscController = require("./controllers/miscController");
@@ -66,8 +68,14 @@ router.route("/exams/count/:type").get(miscController.countExams);
 router.route("/course/category").get(miscController.getCourse_category);
 router.route("/config/defsysem").get(miscController.getDefSYSEM);
 
-// Start server
+// Read SSL certificate and key files
+var privateKey = fs.readFileSync("./credentials/key.pem", "utf8");
+var certificate = fs.readFileSync("./credentials/cert.pem", "utf8");
+
+var credentials = { key: privateKey, cert: certificate };
+
+// Start HTTPS server
 var port = process.env.PORT || 8081;
-app.listen(port, () => {
+https.createServer(credentials, app).listen(port, () => {
   console.log("API is running at " + port);
 });

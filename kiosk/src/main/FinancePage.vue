@@ -1,5 +1,8 @@
 <template>
   <div class="row mb-3">
+    <div v-if="loading" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
     <div class="col-6">
       <div class="container">
         <form class="form-inline">
@@ -262,6 +265,8 @@
 </template>
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import { useConfigStore } from "@/stores/configStore";
+import { useFinanceStore } from "@/stores/financeStore";
 import {
   viewAssessment,
   viewPayments,
@@ -281,36 +286,76 @@ export default {
       payments: [],
       schedules: [],
       semesters: [],
+      loading: true,
     };
   },
   methods: {
     async loadData() {
+      const currentYear = new Date().getFullYear();
       const authStore = useAuthStore();
+      const configStore = useConfigStore();
+      const financeStore = useFinanceStore();
 
       if (authStore.user[0].category.toLowerCase() === "college") {
         this.type = "college";
       } else {
         this.type = "shs_jhs";
-        this.sem = "SY";
+      }
+      try {
+        if (
+          configStore.configs &&
+          financeStore.installment &&
+          financeStore.schedule &&
+          financeStore.assessment
+        ) {
+          const config = configStore.configs;
+          this.sy = config[0].sy;
+          this.sem = config[0].sem;
+
+          this.installment = financeStore.installment;
+          this.assessment = financeStore.assessment;
+          this.schedules = financeStore.schedule;
+          this.payments = financeStore.payment;
+        } else {
+          const config = await viewSYSEM();
+          this.sy = config[0].sy;
+          this.sem = config[0].sem;
+
+          this.installment = parseFloat((await countExams(this.type)).n);
+          this.assessment = await viewAssessment({
+            crs: authStore.user[0].coursecode,
+            mjr: authStore.user[0].major,
+            lvl: authStore.user[0].yrlevel,
+            sy: this.sy,
+            sem: this.sem,
+          });
+          this.schedules = await viewSchedule({
+            studentno: authStore.user[0].studentno,
+            sy: this.sy,
+            semester: this.sem,
+          });
+          this.payments = await viewPayments({
+            transid: authStore.user[0].studentno + `${this.sy}${this.sem}`,
+          });
+
+          financeStore.setInstallment(this.installment);
+          financeStore.setAssessment(this.assessment);
+          financeStore.setSchedule(this.schedules);
+          financeStore.setPayment(this.payments);
+          configStore.setConfig([{ sy: this.sy, sem: this.sem }]);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        this.loading = false;
       }
 
-      this.installment = parseFloat((await countExams(this.type)).n);
-
-      this.assessment = await viewAssessment({
-        crs: authStore.user[0].coursecode,
-        mjr: authStore.user[0].major,
-        lvl: authStore.user[0].yrlevel,
-        sy: this.sy,
-        sem: this.sem,
-      });
-      this.schedules = await viewSchedule({
-        studentno: authStore.user[0].studentno,
-        sy: this.sy,
-        semester: this.sem,
-      });
-      this.payments = await viewPayments({
-        transid: authStore.user[0].studentno + `${this.sy}${this.sem}`,
-      });
+      if (authStore.user[0].category.toLowerCase() === "college") {
+        this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
+      } else {
+        this.sem = "SY";
+        this.semester = `${currentYear - 1}-${currentYear}`;
+      }
     },
     populateSemesters() {
       const currentYear = new Date().getFullYear();
@@ -320,12 +365,10 @@ export default {
       for (let year = currentYear; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
-          this.semester = `${currentYear - 1}-${currentYear}`;
         } else {
           semesters.push(`Summer ${year - 1}-${year}`);
           semesters.push(`2nd Semester ${year - 1}-${year}`);
           semesters.push(`1st Semester ${year - 1}-${year}`);
-          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
         }
       }
 
@@ -417,10 +460,7 @@ export default {
     },
   },
   async created() {
-    const config = await viewSYSEM();
-    this.sy = config[0].sy;
-    this.sem = config[0].sem;
-    this.loadData();
+    await this.loadData();
     this.populateSemesters();
   },
   mounted() {

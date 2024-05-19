@@ -1,5 +1,8 @@
 <template>
   <div class="table-responsive">
+    <div v-if="loading" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
     <div v-for="(group, key) in groupedEvaluation" :key="key">
       <h6>{{ key }}</h6>
       <table class="table">
@@ -27,12 +30,14 @@
 </template>
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import { useEvaluationStore } from "@/stores/evaluationStore";
 import { viewEvaluation } from "@/services/evaluationServices";
 export default {
   data() {
     return {
       studentno: null,
       evaluation: [],
+      loading: true,
     };
   },
   async created() {
@@ -54,10 +59,23 @@ export default {
   methods: {
     async loadData() {
       const authStore = useAuthStore();
+      const evaluationStore = useEvaluationStore();
       this.studentno = authStore.user[0].studentno;
-      this.evaluation = await viewEvaluation({
-        studentno: this.studentno,
-      });
+
+      try {
+        if (evaluationStore.evaluations) {
+          this.evaluation = evaluationStore.evaluations;
+        } else {
+          this.evaluation = await viewEvaluation({
+            studentno: this.studentno,
+          });
+          evaluationStore.setEvaluation(this.evaluation);
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        this.loading = false;
+      }
     },
     loadScript(scriptName, scriptSource) {
       const scriptId = `script-${scriptName}`;

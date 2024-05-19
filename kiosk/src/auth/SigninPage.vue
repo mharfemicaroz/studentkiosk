@@ -3,6 +3,9 @@
     class="container-fluid login-background"
     :style="`background-image:${currentBackground}`"
   >
+    <div v-if="loading" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
     <div class="authentication-page">
       <div class="account-pages my-5 pt-md-5">
         <div class="container">
@@ -104,26 +107,34 @@ export default {
       password: "",
       currentBackground: "",
       isAuthenticated: false,
+      loading: false,
     };
   },
   methods: {
     async login() {
       const authStore = useAuthStore(); // Access the authStore
-      const authAccess = await authStore.login({
-        username: this.username,
-        password: this.password,
-      });
+      let authAccess = null;
+      try {
+        this.loading = true;
+        authAccess = await authStore.login({
+          username: this.username,
+          password: this.password,
+        });
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        this.loading = false;
+        if (authAccess) {
+          this.isAuthenticated = true;
+          this.$refs.toast.showToast("success", "Login successfully!");
 
-      if (authAccess) {
-        this.isAuthenticated = true;
-        this.$refs.toast.showToast("success", "Login successfully!");
-
-        let path = `/index/profile`;
-        setTimeout(() => {
-          this.$router.push(path);
-        }, 1000);
-      } else {
-        this.$refs.toast.showToast("warning", "Invalid login credentials!");
+          let path = `/index/profile`;
+          setTimeout(() => {
+            this.$router.push(path);
+          }, 1000);
+        } else {
+          this.$refs.toast.showToast("warning", "Invalid login credentials!");
+        }
       }
     },
   },

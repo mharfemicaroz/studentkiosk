@@ -1,5 +1,8 @@
 <template>
   <div class="row mb-3">
+    <div v-if="loading" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
     <div class="col-6">
       <div class="container">
         <form class="form-inline">
@@ -57,8 +60,11 @@
 </template>
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import { useConfigStore } from "@/stores/configStore";
+import { useScheduleStore } from "@/stores/scheduleStore";
 import { viewSchedule } from "@/services/scheduleServices";
 import { viewSYSEM } from "@/services/configServices";
+
 export default {
   data() {
     return {
@@ -69,30 +75,54 @@ export default {
       studentno: null,
       schedules: [],
       semesters: [],
+      loading: true,
     };
   },
   async created() {
-    const config = await viewSYSEM();
-    this.sy = config[0].sy;
-    this.sem = config[0].sem;
-    this.loadData();
+    await this.loadData();
     this.populateSemesters();
   },
   methods: {
     async loadData() {
+      const currentYear = new Date().getFullYear();
       const authStore = useAuthStore();
+      const scheduleStore = useScheduleStore();
+      const configStore = useConfigStore();
       this.studentno = authStore.user[0].studentno;
-      if (authStore.user[0].category.toLowerCase() === "college") {
-        this.type = "college";
-      } else {
-        this.type = "shs_jhs";
-        this.sem = "SY";
+
+      try {
+        if (scheduleStore.schedules && configStore.configs) {
+          this.schedules = scheduleStore.schedules;
+          const config = configStore.configs;
+          this.sy = config[0].sy;
+          this.sem = config[0].sem;
+        } else {
+          const config = await viewSYSEM();
+          this.sy = config[0].sy;
+          this.sem = config[0].sem;
+          this.schedules = await viewSchedule({
+            studentno: this.studentno,
+            sy: this.sy,
+            semester: this.sem,
+          });
+
+          scheduleStore.setSchedules(this.schedules);
+          configStore.setConfig([{ sy: this.sy, sem: this.sem }]);
+        }
+
+        if (authStore.user[0].category.toLowerCase() === "college") {
+          this.type = "college";
+          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
+        } else {
+          this.type = "shs_jhs";
+          this.sem = "SY";
+          this.semester = `${currentYear - 1}-${currentYear}`;
+        }
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        this.loading = false;
       }
-      this.schedules = await viewSchedule({
-        studentno: this.studentno,
-        sy: this.sy,
-        semester: this.sem,
-      });
     },
     handleSemesterChange(event) {
       const selectedSemester = event.target.value;
@@ -119,12 +149,10 @@ export default {
       for (let year = currentYear; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
-          this.semester = `${currentYear - 1}-${currentYear}`;
         } else {
           semesters.push(`Summer ${year - 1}-${year}`);
           semesters.push(`2nd Semester ${year - 1}-${year}`);
           semesters.push(`1st Semester ${year - 1}-${year}`);
-          this.semester = `${this.sem} ${currentYear - 1}-${currentYear}`;
         }
       }
 
@@ -134,21 +162,24 @@ export default {
       const scriptId = `script-${scriptName}`;
       if (document.getElementById(scriptId)) {
         console.log("Script already loaded:", scriptName);
-        return; // Script already loaded
+        return;
       }
-      let script = document.createElement("script");
+      const script = document.createElement("script");
       script.id = scriptId;
       script.src = scriptSource;
       document.head.appendChild(script);
     },
   },
   mounted() {
-    this.loadScript("script1", "/js/vendor.min.js");
-    this.loadScript("script2", "/libs/morris-js/morris.min.js");
-    this.loadScript("script3", "/libs/morris-js/morris.min.js");
-    this.loadScript("script4", "/libs/raphael/raphael.min.js");
-    this.loadScript("script5", "/js/pages/dashboard.init.js");
-    this.loadScript("script6", "/js/app.min.js");
+    const scripts = [
+      { name: "script1", src: "/js/vendor.min.js" },
+      { name: "script2", src: "/libs/morris-js/morris.min.js" },
+      { name: "script3", src: "/libs/morris-js/morris.min.js" },
+      { name: "script4", src: "/libs/raphael/raphael.min.js" },
+      { name: "script5", src: "/js/pages/dashboard.init.js" },
+      { name: "script6", src: "/js/app.min.js" },
+    ];
+    scripts.forEach((script) => this.loadScript(script.name, script.src));
   },
 };
 </script>

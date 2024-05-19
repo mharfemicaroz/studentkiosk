@@ -26,7 +26,7 @@ const router = createRouter({
       children: [
         {
           path: "",
-          redirect: "index/schedule",
+          redirect: "index/profile",
         },
         {
           path: "schedule",
@@ -61,7 +61,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
   if (to.path === "/signin" && authStore.isAuthenticated) {
-    next({ path: "index/schedule" });
+    next({ path: "index/profile" });
   } else if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!authStore.isAuthenticated) {
       next({ name: "SignIn" });

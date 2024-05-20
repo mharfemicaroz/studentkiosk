@@ -4,6 +4,7 @@ var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var fs = require("fs");
 var https = require("https");
+var axios = require("axios");
 var userController = require("./controllers/userController");
 var studentController = require("./controllers/studentController");
 var miscController = require("./controllers/miscController");
@@ -25,8 +26,12 @@ app.use(cookieParser());
 app.use("/api", router);
 
 // Middleware for logging
-router.use((request, response, next) => {
+router.use(async (request, response, next) => {
   console.log("Middleware active");
+  const publicIp = await fetchPublicIp();
+  console.log("Public IP Address:", publicIp); // Log the public IP address
+  console.log("Client IP Address:", request.ip); // Log the IP address of the client
+  console.log("Current URL:", request.originalUrl);
   next();
 });
 // User Routes
@@ -73,6 +78,16 @@ var privateKey = fs.readFileSync("./credentials/key.pem", "utf8");
 var certificate = fs.readFileSync("./credentials/cert.pem", "utf8");
 
 var credentials = { key: privateKey, cert: certificate };
+
+async function fetchPublicIp() {
+  try {
+    const response = await axios.get("https://api.ipify.org?format=json");
+    return response.data.ip;
+  } catch (error) {
+    console.error("Error fetching public IP address:", error);
+    return "Error fetching public IP";
+  }
+}
 
 // Start HTTPS server
 var port = process.env.PORT || 20300;

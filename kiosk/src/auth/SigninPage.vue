@@ -16,7 +16,7 @@
                   <span><img src="/images/logo.png" alt="" height="45" /></span>
                 </a>
                 <h5 class="font-14 text-muted mt-3">
-                  Student Kiosk - Webhost Portal V1.0
+                  Student & Parent Portal V1.0
                 </h5>
               </div>
               <div class="card mt-4">

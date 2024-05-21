@@ -128,8 +128,7 @@
         <div class="container-fluid">
           <div class="row">
             <div class="col-md-12">
-              2024 &copy; Student Kiosk by
-              <a href="https://www.area51.ph">Area51</a>
+              2024 &copy; Student Kiosk by <a href="#">Mharfe M. Micaroz</a>
             </div>
           </div>
         </div>
@@ -364,16 +363,18 @@ export default {
   },
   mounted() {
     const authStore = useAuthStore();
-    const scriptStore = useScriptStore(); // Initialize scriptStore
-
-    // Load scripts on every page navigation
-    scriptStore.loadAllScripts();
 
     this.title = document.title;
     this.user = authStore.user[0];
     this.fullname =
       authStore.user[0].firstname + " " + authStore.user[0].surname;
     this.currentPassword = authStore.user[0].password;
+    this.loadScript("script1", "/js/vendor.min.js");
+    this.loadScript("script2", "/libs/morris-js/morris.min.js");
+    this.loadScript("script3", "/libs/morris-js/morris.min.js");
+    this.loadScript("script4", "/libs/raphael/raphael.min.js");
+    this.loadScript("script5", "/js/pages/dashboard.init.js");
+    this.loadScript("script6", "/js/app.min.js");
   },
 };
 </script>

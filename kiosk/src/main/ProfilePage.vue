@@ -426,6 +426,7 @@
 </template>
 <script>
 import { useAuthStore } from "@/stores/authStore";
+import { getStudentById } from "@/services/profileServices";
 export default {
   data() {
     return {

@@ -77,25 +77,6 @@ export default {
         this.loading = false;
       }
     },
-    loadScript(scriptName, scriptSource) {
-      const scriptId = `script-${scriptName}`;
-      if (document.getElementById(scriptId)) {
-        console.log("Script already loaded:", scriptName);
-        return; // Script already loaded
-      }
-      let script = document.createElement("script");
-      script.id = scriptId;
-      script.src = scriptSource;
-      document.head.appendChild(script);
-    },
-  },
-  mounted() {
-    this.loadScript("script1", "/js/vendor.min.js");
-    this.loadScript("script2", "/libs/morris-js/morris.min.js");
-    this.loadScript("script3", "/libs/morris-js/morris.min.js");
-    this.loadScript("script4", "/libs/raphael/raphael.min.js");
-    this.loadScript("script5", "/js/pages/dashboard.init.js");
-    this.loadScript("script6", "/js/app.min.js");
   },
 };
 </script>

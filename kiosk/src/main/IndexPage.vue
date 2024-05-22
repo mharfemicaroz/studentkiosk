@@ -128,7 +128,10 @@
         <div class="container-fluid">
           <div class="row">
             <div class="col-md-12">
-              2024 &copy; Student Kiosk by <a href="#">Mharfe M. Micaroz</a>
+              2024 &copy; Student Kiosk by
+              <a href="https://www.facebook.com/mharfemicaroz" target="_blank"
+                >Mharfe M. Micaroz</a
+              >
             </div>
           </div>
         </div>

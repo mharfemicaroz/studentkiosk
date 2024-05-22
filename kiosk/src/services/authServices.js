@@ -7,9 +7,12 @@ if (window.location.hostname === "kiosk.ndci.edu.ph") {
   BASE_URL = `https://${window.location.hostname}:25856/api/`;
 }
 
-export const loginUser = async (formData) => {
+export const loginUser = async (studentno, formData) => {
   try {
-    const response = await axios.post(`${BASE_URL}users/login/`, formData);
+    const response = await axios.post(
+      `${BASE_URL}users/login/${studentno}`,
+      formData
+    );
     return response.data;
   } catch (error) {
     console.error("Error logging in:", error);

@@ -116,8 +116,7 @@ export default {
       let authAccess = null;
       try {
         this.loading = true;
-        authAccess = await authStore.login({
-          username: this.username,
+        authAccess = await authStore.login(this.username, {
           password: this.password,
         });
       } catch (error) {

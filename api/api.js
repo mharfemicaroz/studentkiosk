@@ -4,7 +4,6 @@ var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var fs = require("fs");
 var https = require("https");
-var axios = require("axios");
 var userController = require("./controllers/userController");
 var studentController = require("./controllers/studentController");
 var miscController = require("./controllers/miscController");
@@ -25,15 +24,16 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use("/api", router);
 
-// Middleware for logging
-router.use(async (request, response, next) => {
-  console.log("Middleware active");
-  const publicIp = await fetchPublicIp();
-  console.log("Public IP Address:", publicIp); // Log the public IP address
-  console.log("Client IP Address:", request.ip); // Log the IP address of the client
-  console.log("Current URL:", request.originalUrl);
+// Middleware for logging the current URL and time taken
+router.use((request, response, next) => {
+  const start = Date.now();
+  response.on("finish", () => {
+    const elapsed = Date.now() - start;
+    console.log(`${request.originalUrl} ${elapsed}ms`);
+  });
   next();
 });
+
 // User Routes
 router
   .route("/users")
@@ -48,7 +48,7 @@ router
 
 router.route("/users/filter").post(userController.filterBy);
 
-router.route("/users/login").post(userController.loginUser);
+router.route("/users/login/:studentno").post(userController.loginUser);
 router.route("/users/logout").post(userController.logoutUser);
 
 // Student Routes
@@ -78,16 +78,6 @@ var privateKey = fs.readFileSync("./credentials/key.pem", "utf8");
 var certificate = fs.readFileSync("./credentials/cert.pem", "utf8");
 
 var credentials = { key: privateKey, cert: certificate };
-
-async function fetchPublicIp() {
-  try {
-    const response = await axios.get("https://api.ipify.org?format=json");
-    return response.data.ip;
-  } catch (error) {
-    console.error("Error fetching public IP address:", error);
-    return "Error fetching public IP";
-  }
-}
 
 // Start HTTPS server
 var port = process.env.PORT || 25856;

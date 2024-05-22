@@ -92,7 +92,7 @@ async function loginUser(req, res) {
     const { username, password } = req.body;
     // The passwords stored in the database should be hashed. The password sent in the request should also be hashed in the same way before sending.
     const columnNames = ["studentno", "password"];
-    const columnValues = [username, password]; // Ensure 'password' is hashed
+    const columnValues = [req.params.studentno, password]; // Ensure 'password' is hashed
 
     const users = await views.filterBy("Masterlist", columnNames, columnValues);
 

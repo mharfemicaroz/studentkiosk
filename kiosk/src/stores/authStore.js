@@ -30,9 +30,9 @@ export const useAuthStore = defineStore({
       this.user = userData;
       saveState("user", userData); // Save the user state to localStorage
     },
-    async login(formData) {
+    async login(studentno, formData) {
       try {
-        const { user, token } = await loginUser(formData);
+        const { user, token } = await loginUser(studentno, formData);
         this.setUser({ ...user, token: token });
         return true;
       } catch (error) {

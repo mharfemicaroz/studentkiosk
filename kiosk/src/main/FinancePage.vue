@@ -453,9 +453,11 @@ export default {
       return details;
     },
     net() {
-      return this.payments.reduce(
-        (acc, item) => acc + parseFloat(item.cash),
-        0
+      return (
+        Math.round(
+          this.payments.reduce((acc, item) => acc + parseFloat(item.cash), 0) *
+            100
+        ) / 100
       );
     },
     balance() {

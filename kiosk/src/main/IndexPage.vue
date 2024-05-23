@@ -6,7 +6,10 @@
     <div class="navbar-custom">
       <ul class="list-unstyled topnav-menu float-right mb-0">
         <li class="dropdown notification-list">
-          <a class="nav-link mr-0 waves-effect waves-light text-light" href="#">
+          <a
+            class="nav-link mr-0 waves-effect waves-light text-light"
+            href="javascript:void(0)"
+          >
             {{ fullname }}
           </a>
         </li>
@@ -23,7 +26,7 @@
       </ul>
       <!-- LOGO -->
       <div class="logo-box">
-        <a href="index.html" class="logo text-center">
+        <a href="javascript:void(0)" class="logo text-center">
           <span class="logo-lg">
             <img src="/images/logo-light.png" alt="" height="45" />
             <!-- <span class="logo-lg-text-light">Flacto</span> -->

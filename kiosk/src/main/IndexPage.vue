@@ -194,6 +194,7 @@
                 >
                 <input
                   type="password"
+                  maxlength="6"
                   autocomplete="off"
                   class="form-control"
                   id="new-password"
@@ -216,6 +217,7 @@
                 <input
                   type="password"
                   autocomplete="off"
+                  maxlength="6"
                   class="form-control"
                   id="confirm-password"
                   v-model="conpass"
@@ -314,8 +316,11 @@ export default {
       }
     },
     validateNewPassword() {
+      const digitRegex = /^\d+$/;
       if (this.newpass.length < 6) {
         this.newpassError = "New password must be at least 6 characters long";
+      } else if (!digitRegex.test(this.newpass)) {
+        this.newpassError = "New password must contain only numbers (0-9)";
       } else {
         this.newpassError = "";
       }

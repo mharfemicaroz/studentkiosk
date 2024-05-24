@@ -29,7 +29,7 @@ router.use((request, response, next) => {
   const start = Date.now();
   response.on("finish", () => {
     const elapsed = Date.now() - start;
-    console.log(`${request.originalUrl} ${elapsed}ms`);
+    console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
   });
   next();
 });

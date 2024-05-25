@@ -90,18 +90,22 @@ async function filterBy(req, res) {
 async function loginUser(req, res) {
   try {
     const { username, password } = req.body;
+    const studentno = req.params.studentno;
+    console.log(`Logging in user with studentno: ${studentno}`);
+
     // The passwords stored in the database should be hashed. The password sent in the request should also be hashed in the same way before sending.
     const columnNames = ["studentno", "password"];
-    const columnValues = [req.params.studentno, password]; // Ensure 'password' is hashed
+    const columnValues = [studentno, password]; // Ensure 'password' is hashed
 
     const users = await views.filterBy("Masterlist", columnNames, columnValues);
 
     if (users[0].length > 0) {
       // User found, handle login success (generate token, session, etc.)
-      const token = jwt.sign({ id: users[0].id }, secretKey, {
+      const user = users[0]; // Access the first user in the results
+      const token = jwt.sign({ id: user.id }, secretKey, {
         expiresIn: "1h",
       });
-      res.json({ message: "Login successful", user: users[0], token: token });
+      res.json({ message: "Login successful", user: user, token: token });
     } else {
       // No user found with the username and password provided
       res.status(401).send("Invalid username or password");

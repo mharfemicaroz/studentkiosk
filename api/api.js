@@ -4,6 +4,7 @@ var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var fs = require("fs");
 var https = require("https");
+var jwt = require("jsonwebtoken");
 var userController = require("./controllers/userController");
 var studentController = require("./controllers/studentController");
 var miscController = require("./controllers/miscController");
@@ -24,6 +25,24 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use("/api", router);
 
+const secretKey = "yourSecretKey"; // Ensure this matches the one in userController
+
+// Authentication middleware
+function isAuthenticated(request, response, next) {
+  const token = request.headers.authorization?.split(" ")[1];
+  if (token) {
+    jwt.verify(token, secretKey, (err, decoded) => {
+      if (err) {
+        return response.status(401).json({ message: "Unauthorized" });
+      }
+      request.user = decoded;
+      next();
+    });
+  } else {
+    response.status(401).json({ message: "Unauthorized" });
+  }
+}
+
 // Middleware for logging the current URL and time taken
 router.use((request, response, next) => {
   const start = Date.now();
@@ -32,6 +51,14 @@ router.use((request, response, next) => {
     console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
   });
   next();
+});
+
+// Apply authentication middleware to all routes except login
+router.use((request, response, next) => {
+  if (request.originalUrl.startsWith("/api/users/login")) {
+    return next();
+  }
+  isAuthenticated(request, response, next);
 });
 
 // User Routes

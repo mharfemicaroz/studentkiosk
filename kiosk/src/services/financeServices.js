@@ -7,9 +7,17 @@ if (window.location.hostname === "kiosk.ndci.edu.ph") {
   BASE_URL = `https://${window.location.hostname}:25856/api/`;
 }
 
+const getToken = () => {
+  return localStorage.getItem("jwtToken");
+};
+
 export const viewAssessment = async (formData) => {
   try {
-    const response = await axios.post(`${BASE_URL}assessment/view/`, formData);
+    const response = await axios.post(`${BASE_URL}assessment/view/`, formData, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error retrieving schedules from database:", error);
@@ -19,7 +27,11 @@ export const viewAssessment = async (formData) => {
 
 export const viewPayments = async (formData) => {
   try {
-    const response = await axios.post(`${BASE_URL}payments/view/`, formData);
+    const response = await axios.post(`${BASE_URL}payments/view/`, formData, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error retrieving schedules from database:", error);
@@ -29,7 +41,11 @@ export const viewPayments = async (formData) => {
 
 export const countExams = async (type) => {
   try {
-    const response = await axios.get(`${BASE_URL}exams/count/${type}`);
+    const response = await axios.get(`${BASE_URL}exams/count/${type}`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error retrieving records from database:", error);

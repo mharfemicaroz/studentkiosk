@@ -34,6 +34,7 @@ export const useAuthStore = defineStore({
       try {
         const { user, token } = await loginUser(studentno, formData);
         this.setUser({ ...user, token: token });
+        localStorage.setItem("jwtToken", token);
         return true;
       } catch (error) {
         this.error = error.message;

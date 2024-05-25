@@ -7,9 +7,17 @@ if (window.location.hostname === "kiosk.ndci.edu.ph") {
   BASE_URL = `https://${window.location.hostname}:25856/api/`;
 }
 
-export const viewSYSEM = async () => {
+const getToken = () => {
+  return localStorage.getItem("jwtToken");
+};
+
+export const viewSYSEM = async (token) => {
   try {
-    const response = await axios.get(`${BASE_URL}config/defsysem/`);
+    const response = await axios.get(`${BASE_URL}config/defsysem/`, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error retrieving records from database:", error);

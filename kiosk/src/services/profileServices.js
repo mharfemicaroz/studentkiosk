@@ -27,7 +27,11 @@ export const getStudentById = async (id) => {
 
 export const updateStudentById = async (id, formData) => {
   try {
-    const response = await axios.patch(`${BASE_URL}students/${id}`, formData);
+    const response = await axios.patch(`${BASE_URL}students/${id}`, formData, {
+      headers: {
+        Authorization: `Bearer ${getToken()}`,
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error updating records in the database:", error);

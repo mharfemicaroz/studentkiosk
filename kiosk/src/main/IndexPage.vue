@@ -254,7 +254,6 @@
   <ToasterComponent ref="toast" />
 </template>
 <script>
-import { useScriptStore } from "@/stores/scriptStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useConfigStore } from "@/stores/configStore";
 import { useFinanceStore } from "@/stores/financeStore";

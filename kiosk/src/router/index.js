@@ -57,8 +57,12 @@ const router = createRouter({
     },
     {
       path: "/403",
-      name: "error403",
+      name: "Error403",
       component: Error403,
+    },
+    {
+      path: "/:catchAll(.*)",
+      redirect: { name: "Error403" },
     },
   ],
 });

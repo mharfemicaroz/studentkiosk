@@ -79,6 +79,15 @@ export default {
       activateSelect: false,
     };
   },
+  // watch: {
+  //   loading(newVal, oldVal) {
+  //     if (!oldVal && newVal) {
+  //       this.$nextTick(() => {
+  //         this.$router.go(0);
+  //       });
+  //     }
+  //   },
+  // },
   async created() {
     await this.loadData();
     this.populateSemesters();

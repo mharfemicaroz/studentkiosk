@@ -48,6 +48,11 @@ const router = createRouter({
           name: "Academic Record",
           component: () => import("../main/EvaluationPage.vue"),
         },
+        {
+          path: "chat",
+          name: "Chat",
+          component: () => import("../main/ChatPage.vue"),
+        },
       ],
     },
     {

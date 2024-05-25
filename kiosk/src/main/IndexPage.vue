@@ -90,6 +90,13 @@
             </li>
 
             <li>
+              <router-link to="/index/chat">
+                <i class="mdi mdi-chat"></i>
+                <span>Talk with NDCIans!</span>
+              </router-link>
+            </li>
+
+            <li>
               <a href="#" @click="logout" ref="logoutButton">
                 <i class="mdi mdi-logout"></i>
                 <span>Log Out</span>

@@ -66,7 +66,7 @@
                       />
                     </div>
 
-                    <div class="form-group mb-3">
+                    <div class="form-group mb-3" v-if="!forgotPassword">
                       <div class="custom-control custom-checkbox">
                         <input
                           type="checkbox"

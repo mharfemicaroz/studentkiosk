@@ -55,7 +55,10 @@ router.use((request, response, next) => {
 
 // Apply authentication middleware to all routes except login
 router.use((request, response, next) => {
-  if (request.originalUrl.startsWith("/api/users/login")) {
+  if (
+    request.originalUrl.startsWith("/api/users/login") ||
+    request.originalUrl.startsWith("/api/users/reset")
+  ) {
     return next();
   }
   isAuthenticated(request, response, next);
@@ -77,6 +80,7 @@ router.route("/users/filter").post(userController.filterBy);
 
 router.route("/users/login/:studentno").post(userController.loginUser);
 router.route("/users/logout").post(userController.logoutUser);
+router.route("/users/reset").patch(userController.resetUser);
 
 // Student Routes
 router

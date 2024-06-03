@@ -125,6 +125,23 @@ function logoutUser(req, res) {
   }
 }
 
+async function resetUser(req, res) {
+  try {
+    const updatedUser = await views.updateByConditions(
+      "Masterlist",
+      req.body.conditions,
+      req.body.data
+    );
+    if (updatedUser) {
+      res.json({ status: "ok" }); // Return the updated user data
+    } else {
+      res.status(404).send("No student was updated"); // Handle the case where no user was updated
+    }
+  } catch (error) {
+    res.status(500).send("Error updating student");
+  }
+}
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -134,4 +151,5 @@ module.exports = {
   filterBy,
   loginUser,
   logoutUser,
+  resetUser,
 };

@@ -35,3 +35,16 @@ export const logoutUser = async (token) => {
     throw error;
   }
 };
+
+export const resetUser = async (conditions, formData) => {
+  try {
+    let fData = formData;
+    formData = null;
+    formData = { conditions: conditions, data: fData };
+    const response = await axios.patch(`${BASE_URL}users/reset/`, formData);
+    return response.data;
+  } catch (error) {
+    console.error("Error resetting password", error);
+    throw error;
+  }
+};

@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { loginUser, logoutUser } from "@/services/authServices";
+import { loginUser, logoutUser, resetUser } from "@/services/authServices";
 
 // Utility function to load persisted state from localStorage
 function loadState(key) {
@@ -49,6 +49,15 @@ export const useAuthStore = defineStore({
         await logoutUser(this.user.token);
       } catch (error) {
         // Handle error
+      }
+    },
+    async reset(conditions, formData) {
+      try {
+        await resetUser(conditions, formData);
+      } catch (error) {
+        this.error = error.message;
+      } finally {
+        this.isLoading = false;
       }
     },
   },

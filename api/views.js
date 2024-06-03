@@ -9,6 +9,9 @@ async function queryDatabase(query, parameters = []) {
       request = request.input(param.name, param.type, param.value);
     });
     let result = await request.query(query);
+    if (result.rowsAffected[0] === 0) {
+      throw new Error("No rows were affected by the query.");
+    }
     return result.recordsets;
   } catch (error) {
     console.error("Database query error:", error);
@@ -63,6 +66,121 @@ async function updateById(tableName, id, data) {
   parameters.push({ name: "id", type: sql.Int, value: id }); // For the WHERE clause
   const query = `UPDATE ${tableName} SET ${updates.join(", ")} WHERE id = @id`;
 
+  return await queryDatabase(query, parameters);
+}
+
+async function updateById(tableName, id, data) {
+  const updates = Object.keys(data).map((field) => `${field} = @${field}`);
+  const parameters = Object.keys(data).map((field) => {
+    let type;
+    let value = data[field];
+
+    if (typeof value === "number" && Number.isInteger(value)) {
+      type = sql.Int;
+    } else if (typeof value === "number" && !Number.isInteger(value)) {
+      type = sql.Float;
+    } else if (typeof value === "boolean") {
+      type = sql.Bit;
+    } else {
+      type = sql.NVarChar;
+    }
+
+    return { name: field, type, value };
+  });
+
+  parameters.push({ name: "id", type: sql.Int, value: id }); // For the WHERE clause
+  const query = `UPDATE ${tableName} SET ${updates.join(", ")} WHERE id = @id`;
+
+  return await queryDatabase(query, parameters);
+}
+
+async function updateByColumn(tableName, columnName, columnValue, data) {
+  const updates = Object.keys(data).map((field) => `${field} = @${field}`);
+  const parameters = Object.keys(data).map((field) => {
+    let type;
+    let value = data[field];
+
+    if (typeof value === "number" && Number.isInteger(value)) {
+      type = sql.Int;
+    } else if (typeof value === "number" && !Number.isInteger(value)) {
+      type = sql.Float;
+    } else if (typeof value === "boolean") {
+      type = sql.Bit;
+    } else {
+      type = sql.NVarChar;
+    }
+
+    return { name: field, type, value };
+  });
+
+  let columnType;
+  if (typeof columnValue === "number" && Number.isInteger(columnValue)) {
+    columnType = sql.Int;
+  } else if (
+    typeof columnValue === "number" &&
+    !Number.isInteger(columnValue)
+  ) {
+    columnType = sql.Float;
+  } else if (typeof columnValue === "boolean") {
+    columnType = sql.Bit;
+  } else {
+    columnType = sql.NVarChar;
+  }
+
+  parameters.push({
+    name: "columnValue",
+    type: columnType,
+    value: columnValue,
+  });
+  const query = `UPDATE ${tableName} SET ${updates.join(
+    ", "
+  )} WHERE ${columnName} = @columnValue`;
+  return await queryDatabase(query, parameters);
+}
+
+async function updateByConditions(tableName, conditions, data) {
+  const updates = Object.keys(data).map((field) => `${field} = @${field}`);
+  const conditionStrings = Object.keys(conditions).map(
+    (field) => `${field} = @${field}_cond`
+  );
+
+  const parameters = Object.keys(data).map((field) => {
+    let type;
+    let value = data[field];
+
+    if (typeof value === "number" && Number.isInteger(value)) {
+      type = sql.Int;
+    } else if (typeof value === "number" && !Number.isInteger(value)) {
+      type = sql.Float;
+    } else if (typeof value === "boolean") {
+      type = sql.Bit;
+    } else {
+      type = sql.NVarChar;
+    }
+
+    return { name: field, type, value };
+  });
+
+  Object.keys(conditions).forEach((field) => {
+    let type;
+    let value = conditions[field];
+
+    if (typeof value === "number" && Number.isInteger(value)) {
+      type = sql.Int;
+    } else if (typeof value === "number" && !Number.isInteger(value)) {
+      type = sql.Float;
+    } else if (typeof value === "boolean") {
+      type = sql.Bit;
+    } else {
+      type = sql.NVarChar;
+    }
+
+    parameters.push({ name: `${field}_cond`, type, value });
+  });
+
+  const query = `UPDATE ${tableName} SET ${updates.join(
+    ", "
+  )} WHERE ${conditionStrings.join(" AND ")}`;
   return await queryDatabase(query, parameters);
 }
 
@@ -163,6 +281,8 @@ module.exports = {
   getById,
   insertInto,
   updateById,
+  updateByColumn,
+  updateByConditions,
   deleteById,
   filterBy,
   search,

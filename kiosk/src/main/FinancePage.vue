@@ -368,6 +368,10 @@ export default {
         }
       } catch (error) {
         console.error("Error loading data:", error);
+        this.assessment = [];
+        this.schedules = [];
+        this.payments = [];
+        this.installment = 0;
       } finally {
         this.loading = false;
       }

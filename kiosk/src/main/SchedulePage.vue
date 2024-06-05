@@ -134,6 +134,7 @@ export default {
         }
       } catch (error) {
         console.error("Error loading data:", error);
+        this.schedules = [];
       } finally {
         this.loading = false;
       }

@@ -43,12 +43,15 @@ function isAuthenticated(request, response, next) {
   }
 }
 
-// Middleware for logging the current URL and time taken
+// Middleware for logging the current URL, date, and time taken
 router.use((request, response, next) => {
   const start = Date.now();
+  const currentDate = new Date().toISOString();
   response.on("finish", () => {
     const elapsed = Date.now() - start;
-    console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
+    console.log(
+      `[${currentDate}] ${request.method} ${request.originalUrl} ${elapsed}ms`
+    );
   });
   next();
 });

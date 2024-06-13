@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
-import SignIn from "../main/WebDown.vue";
+import SignIn from "../auth/SigninPage.vue";
 import IndexPage from "../main/IndexPage.vue";
 import Error403 from "../main/ErrorPage.vue";
 

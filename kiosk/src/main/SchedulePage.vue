@@ -120,7 +120,11 @@ export default {
           if (!this.activateSelect) {
             const config = await viewSYSEM();
             this.sy = config[0].sy;
-            this.sem = config[0].sem;
+            if (this.type === "college") {
+              this.sem = config[0].sem;
+            } else {
+              this.sem = "SY";
+            }
           }
 
           this.schedules = await viewSchedule({
@@ -142,8 +146,8 @@ export default {
       if (!this.activateSelect) {
         this.semester =
           userCategory === "college" || userCategory === "techvoch"
-            ? `${this.sem} ${currentYear - 1}-${currentYear}`
-            : `${currentYear - 1}-${currentYear}`;
+            ? `${this.sem} ${currentYear}-${currentYear + 1}`
+            : `${currentYear}-${currentYear + 1}`;
       }
     },
     handleSemesterChange(event) {
@@ -161,6 +165,7 @@ export default {
         }
       } else {
         this.sy = selectedSemester;
+        this.sem = "SY";
       }
 
       this.loadData();
@@ -172,11 +177,11 @@ export default {
 
       for (let year = currentYear; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
-          semesters.push(`${year - 1}-${year}`);
+          semesters.push(`${year}-${year + 1}`);
         } else {
-          semesters.push(`Summer ${year - 1}-${year}`);
-          semesters.push(`2nd Semester ${year - 1}-${year}`);
-          semesters.push(`1st Semester ${year - 1}-${year}`);
+          semesters.push(`Summer ${year}-${year + 1}`);
+          semesters.push(`2nd Semester ${year}-${year + 1}`);
+          semesters.push(`1st Semester ${year}-${year + 1}`);
         }
       }
 

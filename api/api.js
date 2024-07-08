@@ -43,16 +43,25 @@ function isAuthenticated(request, response, next) {
   }
 }
 
-// Middleware for logging the current URL, date, and time taken
 router.use((request, response, next) => {
   const start = Date.now();
-  const currentDate = new Date().toISOString();
+
+  // Create a date object for the current time
+  const currentDate = new Date();
+
+  // Adjust for timezone offset (+8 hours)
+  currentDate.setHours(currentDate.getHours() + 8);
+
+  // Convert to ISO string format
+  const dateISOString = currentDate.toISOString();
+
   response.on("finish", () => {
     const elapsed = Date.now() - start;
     console.log(
-      `[${currentDate}] ${request.method} ${request.originalUrl} ${elapsed}ms`
+      `[${dateISOString}] ${request.method} ${request.originalUrl} ${elapsed}ms`
     );
   });
+
   next();
 });
 

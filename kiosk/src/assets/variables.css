@@ -1,0 +1,29 @@
+:root {
+  /* Adjust these values to change the red theme */
+  --primary-color: #e3342f; /* Used for header and footer backgrounds, primary button background */
+  --secondary-color: #cc1f1a; /* Used for mobile nav and sidebar backgrounds */
+  --tertiary-color: #f56565; /* Used for hover/active states */
+  --accent: #e53e3e; /* Used for accent borders (e.g., spinner) */
+  --primary-text: #7f1d1d; /* Example text color */
+}
+
+/* Background color classes */
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+.bg-secondary {
+  background-color: var(--secondary-color) !important;
+}
+.bg-tertiary {
+  background-color: var(--tertiary-color) !important;
+}
+
+/* Text color classes */
+.text-primary-text {
+  color: var(--primary-text) !important;
+}
+
+/* Border color classes */
+.border-t-accent {
+  border-top-color: var(--accent) !important;
+}

@@ -10,11 +10,6 @@ import "@mdi/font/css/materialdesignicons.min.css";
 
 const app = createApp(App);
 
-app.config.globalProperties = {
-  API_URL: `http://${window.location.hostname}:8081/api/`,
-};
-
-// Set dynamic title from environment variables
 document.title = import.meta.env.VITE_APP_TITLE || "Default Title";
 
 app.use(router);

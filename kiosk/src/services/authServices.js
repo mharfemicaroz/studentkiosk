@@ -1,7 +1,9 @@
-import axiosInstance from "../plugins/axiosConfig.js";
+import initializeAxios from "../plugins/axiosConfig.js";
 
 export const loginUser = async (studentno, formData) => {
   try {
+    // Wait for the axios instance to be initialized
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.post(
       `users/login/${studentno}`,
       formData
@@ -15,6 +17,8 @@ export const loginUser = async (studentno, formData) => {
 
 export const logoutUser = async (token) => {
   try {
+    // Wait for the axios instance to be initialized
+    const axiosInstance = await initializeAxios();
     await axiosInstance.post(
       `users/logout/`,
       {},
@@ -31,13 +35,15 @@ export const logoutUser = async (token) => {
 
 export const resetUser = async (conditions, formData) => {
   try {
+    // Wait for the axios instance to be initialized
+    const axiosInstance = await initializeAxios();
     let fData = formData;
     formData = null;
     formData = { conditions: conditions, data: fData };
     const response = await axiosInstance.post(`users/reset/`, formData);
     return response.data;
   } catch (error) {
-    console.error("Error resetting password", error);
+    console.error("Error resetting password:", error);
     throw error;
   }
 };

@@ -1,8 +1,10 @@
+// src/router/index.js
 import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import SignIn from "../auth/SigninPage.vue";
 import IndexPage from "../main/IndexPage.vue";
 import Error403 from "../main/ErrorPage.vue";
+import { verifyServer } from "@/routeGuard";
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -17,12 +19,15 @@ const router = createRouter({
       component: SignIn,
     },
     {
+      path: "/notify",
+      name: "NotifyPage",
+      component: () => import("../main/NotifyPage.vue"),
+    },
+    {
       path: "/index",
       name: "IndexPage",
       component: IndexPage,
-      meta: {
-        requiresAuth: true,
-      },
+      meta: { requiresAuth: true },
       children: [
         {
           path: "",
@@ -67,20 +72,25 @@ const router = createRouter({
   ],
 });
 
-router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
+router.beforeEach(async (to, from, next) => {
+  // First, verify server availability for every route except the NotifyPage and SignIn routes
+  if (to.name !== "NotifyPage" && to.name !== "SignIn") {
+    const serverAccessible = await verifyServer();
+    if (!serverAccessible) {
+      return next({ name: "NotifyPage" });
+    }
+  }
 
+  // Then handle authentication checks
+  const authStore = useAuthStore();
   if (to.path === "/signin" && authStore.isAuthenticated) {
-    next({ path: "index/profile" });
+    return next({ path: "index/profile" });
   } else if (to.matched.some((record) => record.meta.requiresAuth)) {
     if (!authStore.isAuthenticated) {
-      next({ name: "SignIn" });
-    } else {
-      next();
+      return next({ name: "SignIn" });
     }
-  } else {
-    next();
   }
+  next();
 });
 
 router.addRoute({

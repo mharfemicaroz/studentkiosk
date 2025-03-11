@@ -1,4 +1,4 @@
-import axiosInstance from "../plugins/axiosConfig.js";
+import initializeAxios from "../plugins/axiosConfig.js";
 
 const getToken = () => {
   return localStorage.getItem("jwtToken");
@@ -6,6 +6,7 @@ const getToken = () => {
 
 export const viewSchedule = async (formData) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.post(`schedule/view/`, formData, {
       headers: {
         Authorization: `Bearer ${getToken()}`,

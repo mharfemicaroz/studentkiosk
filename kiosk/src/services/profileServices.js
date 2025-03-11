@@ -1,4 +1,4 @@
-import axiosInstance from "../plugins/axiosConfig.js";
+import initializeAxios from "../plugins/axiosConfig.js";
 
 const getToken = () => {
   return localStorage.getItem("jwtToken");
@@ -6,6 +6,7 @@ const getToken = () => {
 
 export const getStudentById = async (id) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.get(`students/${id}`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -20,6 +21,7 @@ export const getStudentById = async (id) => {
 
 export const updateStudentById = async (id, formData) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.patch(`students/${id}`, formData, {
       headers: {
         Authorization: `Bearer ${getToken()}`,

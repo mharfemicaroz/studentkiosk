@@ -12,6 +12,7 @@
     "@mdi/font": "^7.4.47",
     "@tailwindcss/vite": "^4.0.9",
     "axios": "^1.6.8",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "jquery": "^3.7.1",
     "pinia": "^2.1.7",

@@ -1,4 +1,4 @@
-import axiosInstance from "../plugins/axiosConfig.js";
+import initializeAxios from "../plugins/axiosConfig.js";
 
 const getToken = () => {
   return localStorage.getItem("jwtToken");
@@ -6,6 +6,7 @@ const getToken = () => {
 
 export const viewAssessment = async (formData) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.post(`assessment/view/`, formData, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -20,6 +21,7 @@ export const viewAssessment = async (formData) => {
 
 export const viewPayments = async (formData) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.post(`payments/view/`, formData, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
@@ -34,6 +36,7 @@ export const viewPayments = async (formData) => {
 
 export const countExams = async (type) => {
   try {
+    const axiosInstance = await initializeAxios();
     const response = await axiosInstance.get(`exams/count/${type}`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,

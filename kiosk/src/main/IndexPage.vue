@@ -25,8 +25,7 @@
                 src="/images/logo-banner.png"
                 alt="Logo"
                 class="hidden md:block"
-                width="158"
-                height="50"
+                height="45"
               />
               <img
                 src="/images/logo-sm.png"
@@ -447,6 +446,7 @@ export default {
     this.user = authStore.user[0];
     this.fullname = authStore.user.firstname + " " + authStore.user.surname;
     this.currentPassword = authStore.user.password;
+    window.toastRef = this.$refs.toast;
   },
 };
 </script>

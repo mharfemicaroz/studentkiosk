@@ -1,23 +1,38 @@
+require("dotenv").config(); // Load .env variables
+
 var express = require("express");
 var bodyParser = require("body-parser");
 var cors = require("cors");
 var cookieParser = require("cookie-parser");
 var fs = require("fs");
-var https = require("https");
 var jwt = require("jsonwebtoken");
 var userController = require("./controllers/userController");
 var studentController = require("./controllers/studentController");
 var miscController = require("./controllers/miscController");
+const ftp = require("basic-ftp");
+const { Readable } = require("stream");
+const pathModule = require("path");
+const rateLimit = require("express-rate-limit");
 
 var app = express();
 var router = express.Router();
 
 const corsOptions = {
   origin: "*",
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  methods: "GET,PUT,POST",
   credentials: true,
   optionsSuccessStatus: 204,
 };
+
+// Throttle middleware: limit each IP to 100 requests per 15 minutes
+const apiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 15 minutes
+  max: 1000,
+  message: "Too many requests from this IP, please try again later.",
+});
+
+// Apply throttle to all /api routes
+app.use("/api", apiLimiter);
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -25,7 +40,7 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use("/api", router);
 
-const secretKey = process.env.secretKey; // Ensure this matches the one in userController
+const secretKey = process.env.secretKey;
 
 // Authentication middleware
 function isAuthenticated(request, response, next) {
@@ -57,7 +72,8 @@ router.use((request, response, next) => {
 router.use((request, response, next) => {
   if (
     request.originalUrl.startsWith("/api/users/login") ||
-    request.originalUrl.startsWith("/api/users/reset")
+    request.originalUrl.startsWith("/api/users/reset") ||
+    request.originalUrl.startsWith("/api/verify")
   ) {
     return next();
   }
@@ -69,13 +85,7 @@ router
   .route("/users")
   .get(userController.getAllUsers)
   .post(userController.createUser);
-
-router
-  .route("/users/:id")
-  .get(userController.getUserById)
-  .put(userController.updateUser)
-  .delete(userController.deleteUser);
-
+router.route("/users/:id").get(userController.getUserById);
 router.route("/users/filter").post(userController.filterBy);
 router.route("/users/login/:studentno").post(userController.loginUser);
 router.route("/users/logout").post(userController.logoutUser);
@@ -86,13 +96,10 @@ router
   .route("/students")
   .get(studentController.getAllStudents)
   .post(studentController.createStudent);
-
 router
   .route("/students/:id")
   .get(studentController.getStudentById)
-  .put(studentController.updateStudent)
-  .patch(studentController.updateStudent)
-  .delete(studentController.deleteStudent);
+  .put(studentController.updateStudent);
 
 // Special Routes
 router.route("/schedule/view").post(miscController.viewSchedule);
@@ -102,15 +109,67 @@ router.route("/payments/view").post(miscController.viewPayments);
 router.route("/exams/count/:type").get(miscController.countExams);
 router.route("/course/category").get(miscController.getCourse_category);
 router.route("/config/defsysem").get(miscController.getDefSYSEM);
+router.route("/verify").get((req, res) => {
+  res.json({ access: true });
+});
 
-// Read SSL certificate and key files
-var privateKey = fs.readFileSync("./credentials/key.pem", "utf8");
-var certificate = fs.readFileSync("./credentials/cert.pem", "utf8");
+// Helper: Convert a Buffer to a Readable stream
+function bufferToStream(buffer) {
+  const stream = new Readable();
+  stream.push(buffer);
+  stream.push(null);
+  return stream;
+}
 
-var credentials = { key: privateKey, cert: certificate };
+// Function to update the configuration file on FTP
+async function updateConfigViaFTP(ngrokUrl) {
+  const client = new ftp.Client();
+  client.ftp.verbose = true;
+  try {
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASS,
+      secure: process.env.FTP_SECURE === "true", // convert string to boolean
+    });
+    // Create JSON data with the new ngrok URL
+    const configData = JSON.stringify({ ngrokUrl: ngrokUrl });
+    // Convert the JSON buffer to a stream
+    const sourceStream = bufferToStream(Buffer.from(configData));
+    // Retrieve the remote upload path from .env (e.g., "public_html/config.json")
+    const remotePath = process.env.FTP_UPLOAD_PATH;
+    // Ensure the remote directory exists
+    const remoteDir = pathModule.dirname(remotePath);
+    await client.ensureDir(remoteDir);
+    // Upload the file
+    await client.uploadFrom(sourceStream, remotePath);
+    console.log("Configuration updated on FTP server.");
+  } catch (err) {
+    console.error("FTP error:", err);
+  }
+  client.close();
+}
 
 // Start HTTPS server
-var port = process.env.PORT || 25856;
-https.createServer(credentials, app).listen(port, () => {
+var port = process.env.PORT || 3000;
+app.listen(port, () => {
   console.log("API is running at " + port);
+
+  const ngrok = require("@ngrok/ngrok");
+
+  (async function () {
+    const listener = await ngrok.forward({
+      addr: "http://localhost:3000",
+      authtoken_from_env: true,
+      crt: fs.readFileSync("./credentials/cert.pem", "utf8"),
+      key: fs.readFileSync("./credentials/key.pem", "utf8"),
+    });
+
+    console.log(`Ingress established at: ${listener.url()}`);
+
+    // Update the config file on your FTP server with the new ngrok URL
+    await updateConfigViaFTP(listener.url());
+  })();
+
+  process.stdin.resume();
 });

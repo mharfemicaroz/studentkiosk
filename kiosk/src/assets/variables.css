@@ -1,10 +1,10 @@
 :root {
-  /* Adjust these values to change the purple theme */
-  --primary-color: #6b46c1; /* Used for header and footer backgrounds, primary button background */
-  --secondary-color: #553c9a; /* Used for mobile nav and sidebar backgrounds */
-  --tertiary-color: #7c3aed; /* Used for hover/active states */
-  --accent: #805ad5; /* Used for accent borders (e.g., spinner) */
-  --primary-text: #4c2a7b; /* Example text color */
+  /* Adjust these values to change the red theme */
+  --primary-color: #e53e3e; /* Used for header and footer backgrounds, primary button background */
+  --secondary-color: #c53030; /* Used for mobile nav and sidebar backgrounds */
+  --tertiary-color: #f56565; /* Used for hover/active states */
+  --accent: #fc8181; /* Used for accent borders (e.g., spinner) */
+  --primary-text: #9b2c2c; /* Example text color */
 }
 
 /* Background color classes */

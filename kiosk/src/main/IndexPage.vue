@@ -25,6 +25,7 @@
                 src="/images/logo-banner.png"
                 alt="Logo"
                 class="hidden md:block"
+                width="158"
                 height="45"
               />
               <img

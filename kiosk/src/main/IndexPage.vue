@@ -32,6 +32,7 @@
                 src="/images/logo-sm.png"
                 alt="Logo"
                 class="block md:hidden"
+                width="45"
                 height="45"
               />
             </a>

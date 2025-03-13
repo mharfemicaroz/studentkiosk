@@ -13,6 +13,7 @@ const ftp = require("basic-ftp");
 const { Readable } = require("stream");
 const pathModule = require("path");
 const rateLimit = require("express-rate-limit");
+const ngrok = require("@ngrok/ngrok");
 
 var app = express();
 var router = express.Router();
@@ -24,14 +25,15 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Throttle middleware: limit each IP to 100 requests per 15 minutes
+// Throttle middleware: limit each IP to 1000 requests per hour
 const apiLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 15 minutes
+  windowMs: 60 * 60 * 1000, // 1 hour
   max: 1000,
   message: "Too many requests from this IP, please try again later.",
 });
 
-// Apply throttle to all /api routes
+app.set("trust proxy", 1);
+
 app.use("/api", apiLimiter);
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -81,21 +83,13 @@ router.use((request, response, next) => {
 });
 
 // User Routes
-router
-  .route("/users")
-  .get(userController.getAllUsers)
-  .post(userController.createUser);
+router;
 router.route("/users/:id").get(userController.getUserById);
 router.route("/users/filter").post(userController.filterBy);
 router.route("/users/login/:studentno").post(userController.loginUser);
 router.route("/users/logout").post(userController.logoutUser);
 router.route("/users/reset").post(userController.resetUser);
 
-// Student Routes
-router
-  .route("/students")
-  .get(studentController.getAllStudents)
-  .post(studentController.createStudent);
 router
   .route("/students/:id")
   .get(studentController.getStudentById)
@@ -132,15 +126,20 @@ async function updateConfigViaFTP(ngrokUrl) {
       password: process.env.FTP_PASS,
       secure: process.env.FTP_SECURE === "true", // convert string to boolean
     });
+
     // Create JSON data with the new ngrok URL
     const configData = JSON.stringify({ ngrokUrl: ngrokUrl });
+
     // Convert the JSON buffer to a stream
     const sourceStream = bufferToStream(Buffer.from(configData));
+
     // Retrieve the remote upload path from .env (e.g., "public_html/config.json")
     const remotePath = process.env.FTP_UPLOAD_PATH;
+
     // Ensure the remote directory exists
     const remoteDir = pathModule.dirname(remotePath);
     await client.ensureDir(remoteDir);
+
     // Upload the file
     await client.uploadFrom(sourceStream, remotePath);
     console.log("Configuration updated on FTP server.");
@@ -150,26 +149,46 @@ async function updateConfigViaFTP(ngrokUrl) {
   client.close();
 }
 
+// Store our active ngrok listener so we can close it before starting again
+let activeNgrokListener = null;
+
+// Encapsulate ngrok forwarding so we can re-invoke it
+async function startNgrokForward() {
+  // If a tunnel already exists, close it
+  if (activeNgrokListener) {
+    try {
+      await activeNgrokListener.close();
+      console.log("Closed previous ngrok tunnel.");
+    } catch (err) {
+      console.error("Error closing previous ngrok tunnel:", err);
+    }
+  }
+
+  // Create a new tunnel
+  activeNgrokListener = await ngrok.forward({
+    addr: "http://localhost:3000",
+    authtoken_from_env: true,
+    crt: fs.readFileSync("./credentials/cert.pem", "utf8"),
+    key: fs.readFileSync("./credentials/key.pem", "utf8"),
+  });
+
+  console.log(`Ingress established at: ${activeNgrokListener.url()}`);
+
+  // Update the config file on your FTP server with the new ngrok URL
+  await updateConfigViaFTP(activeNgrokListener.url());
+}
+
 // Start HTTPS server
 var port = process.env.PORT || 3000;
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log("API is running at " + port);
 
-  const ngrok = require("@ngrok/ngrok");
+  // Start ngrok for the first time
+  await startNgrokForward();
 
-  (async function () {
-    const listener = await ngrok.forward({
-      addr: "http://localhost:3000",
-      authtoken_from_env: true,
-      crt: fs.readFileSync("./credentials/cert.pem", "utf8"),
-      key: fs.readFileSync("./credentials/key.pem", "utf8"),
-    });
-
-    console.log(`Ingress established at: ${listener.url()}`);
-
-    // Update the config file on your FTP server with the new ngrok URL
-    await updateConfigViaFTP(listener.url());
-  })();
+  setInterval(async () => {
+    await startNgrokForward();
+  }, 14400000); // 4 hours in milliseconds
 
   process.stdin.resume();
 });

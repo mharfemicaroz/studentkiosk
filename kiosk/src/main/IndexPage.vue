@@ -199,11 +199,11 @@
       <p class="text-sm">
         2024 &copy; Student Kiosk by
         <a
-          href="https://www.facebook.com/mharfemicaroz"
+          href="https://area51.ph"
           target="_blank"
           class="text-yellow-300 hover:underline"
         >
-          Mharfe M. Micaroz
+          Area51 PH
         </a>
       </p>
     </footer>

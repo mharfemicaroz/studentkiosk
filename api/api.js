@@ -14,6 +14,9 @@ const { Readable } = require("stream");
 const pathModule = require("path");
 const rateLimit = require("express-rate-limit");
 const ngrok = require("@ngrok/ngrok");
+const morgan = require("morgan");
+const xssClean = require("xss-clean");
+const securityHeaders = require("./middlewares/securityHeaders");
 
 var app = express();
 var router = express.Router();
@@ -40,6 +43,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors(corsOptions));
 app.use(cookieParser());
+app.use(xssClean());
+app.use(securityHeaders());
+app.use(morgan("dev"));
 app.use("/api", router);
 
 const secretKey = process.env.secretKey;
@@ -61,14 +67,14 @@ function isAuthenticated(request, response, next) {
 }
 
 // Middleware for logging the current URL and time taken
-router.use((request, response, next) => {
-  const start = Date.now();
-  response.on("finish", () => {
-    const elapsed = Date.now() - start;
-    console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
-  });
-  next();
-});
+// router.use((request, response, next) => {
+//   const start = Date.now();
+//   response.on("finish", () => {
+//     const elapsed = Date.now() - start;
+//     console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
+//   });
+//   next();
+// });
 
 // Apply authentication middleware to all routes except login and reset routes
 router.use((request, response, next) => {

@@ -1,11 +1,11 @@
+// main.js
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 
-// Import Tailwind CSS
+// Import Tailwind CSS and other assets
 import "./assets/tailwind.css";
-
 import "@mdi/font/css/materialdesignicons.min.css";
 
 const app = createApp(App);
@@ -16,3 +16,20 @@ app.use(router);
 app.use(createPinia());
 
 app.mount("#app");
+
+// Register the Service Worker
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/js/sw.js")
+      .then((registration) => {
+        console.log(
+          "Service Worker registered with scope:",
+          registration.scope
+        );
+      })
+      .catch((error) => {
+        console.error("Service Worker registration failed:", error);
+      });
+  });
+}

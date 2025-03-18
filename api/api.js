@@ -1,14 +1,13 @@
-require("dotenv").config(); // Load .env variables
-
-var express = require("express");
-var bodyParser = require("body-parser");
-var cors = require("cors");
-var cookieParser = require("cookie-parser");
-var fs = require("fs");
-var jwt = require("jsonwebtoken");
-var userController = require("./controllers/userController");
-var studentController = require("./controllers/studentController");
-var miscController = require("./controllers/miscController");
+require("dotenv").config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const fs = require("fs");
+const jwt = require("jsonwebtoken");
+const userController = require("./controllers/userController");
+const studentController = require("./controllers/studentController");
+const miscController = require("./controllers/miscController");
 const ftp = require("basic-ftp");
 const { Readable } = require("stream");
 const pathModule = require("path");
@@ -17,10 +16,20 @@ const ngrok = require("@ngrok/ngrok");
 const morgan = require("morgan");
 const xssClean = require("xss-clean");
 const securityHeaders = require("./middlewares/securityHeaders");
+const redis = require("redis");
+const crypto = require("crypto");
 
-var app = express();
-var router = express.Router();
+const app = express();
+const router = express.Router();
 
+// Create and configure Redis client
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL || "redis://localhost:6379",
+});
+redisClient.on("error", (err) => console.error("Redis error:", err));
+redisClient.connect();
+
+// CORS Options
 const corsOptions = {
   origin: "*",
   methods: "GET,PUT,POST",
@@ -28,7 +37,7 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Throttle middleware: limit each IP to 1000 requests per hour
+// Rate Limiter
 const apiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 1000,
@@ -36,7 +45,6 @@ const apiLimiter = rateLimit({
 });
 
 app.set("trust proxy", 1);
-
 app.use("/api", apiLimiter);
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -66,17 +74,7 @@ function isAuthenticated(request, response, next) {
   }
 }
 
-// Middleware for logging the current URL and time taken
-// router.use((request, response, next) => {
-//   const start = Date.now();
-//   response.on("finish", () => {
-//     const elapsed = Date.now() - start;
-//     console.log(`${request.method} ${request.originalUrl} ${elapsed}ms`);
-//   });
-//   next();
-// });
-
-// Apply authentication middleware to all routes except login and reset routes
+// Apply authentication middleware to all routes except login, reset, and verify
 router.use((request, response, next) => {
   if (
     request.originalUrl.startsWith("/api/users/login") ||
@@ -88,30 +86,83 @@ router.use((request, response, next) => {
   isAuthenticated(request, response, next);
 });
 
-// User Routes
-router;
-router.route("/users/:id").get(userController.getUserById);
-router.route("/users/filter").post(userController.filterBy);
-router.route("/users/login/:studentno").post(userController.loginUser);
-router.route("/users/logout").post(userController.logoutUser);
-router.route("/users/reset").post(userController.resetUser);
+// --- Caching Middleware for Specific Routes ---
 
-router
-  .route("/students/:id")
-  .get(studentController.getStudentById)
-  .put(studentController.updateStudent);
+// Cache middleware for GET /users/:id
+async function cacheUserMiddleware(req, res, next) {
+  const { id } = req.params;
+  const cacheKey = `user:${id}`;
+  try {
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for user id: ${id}`);
+      return res.json(JSON.parse(cachedData));
+    }
+    // Override res.json to cache the response before sending it
+    res.sendResponse = res.json;
+    res.json = (body) => {
+      redisClient.setEx(cacheKey, 3600, JSON.stringify(body)); // Cache for 1 hour
+      res.sendResponse(body);
+    };
+    next();
+  } catch (err) {
+    console.error("Redis error:", err);
+    next();
+  }
+}
 
-// Special Routes
-router.route("/schedule/view").post(miscController.viewSchedule);
-router.route("/evaluation/view").post(miscController.viewEvaluation);
-router.route("/assessment/view").post(miscController.viewAssessment);
-router.route("/payments/view").post(miscController.viewPayments);
-router.route("/exams/count/:type").get(miscController.countExams);
-router.route("/course/category").get(miscController.getCourse_category);
-router.route("/config/defsysem").get(miscController.getDefSYSEM);
-router.route("/verify").get((req, res) => {
-  res.json({ access: true });
-});
+// Cache middleware for GET /students/:id
+async function cacheStudentMiddleware(req, res, next) {
+  const { id } = req.params;
+  const cacheKey = `student:${id}`;
+  try {
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for student id: ${id}`);
+      return res.json(JSON.parse(cachedData));
+    }
+    res.sendResponse = res.json;
+    res.json = (body) => {
+      redisClient.setEx(cacheKey, 3600, JSON.stringify(body)); // Cache for 1 hour
+      res.sendResponse(body);
+    };
+    next();
+  } catch (err) {
+    console.error("Redis error:", err);
+    next();
+  }
+}
+
+// Generic cache middleware for miscellaneous routes (works for both GET and POST)
+// It uses a combination of the URL and request body (if any) to generate a unique cache key.
+async function cacheGenericMiddleware(req, res, next) {
+  // Generate a key based on the URL and, for POST requests, the body
+  const bodyString = req.method === "POST" ? JSON.stringify(req.body) : "";
+  const hash = crypto
+    .createHash("md5")
+    .update(req.originalUrl + bodyString)
+    .digest("hex");
+  const cacheKey = `${req.originalUrl}:${hash}`;
+
+  try {
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for ${req.originalUrl}`);
+      return res.json(JSON.parse(cachedData));
+    }
+    res.sendResponse = res.json;
+    res.json = (body) => {
+      redisClient.setEx(cacheKey, 3600, JSON.stringify(body)); // Cache for 1 hour
+      res.sendResponse(body);
+    };
+    next();
+  } catch (err) {
+    console.error("Redis error:", err);
+    next();
+  }
+}
+
+// --- End of Caching Middleware ---
 
 // Helper: Convert a Buffer to a Readable stream
 function bufferToStream(buffer) {
@@ -130,23 +181,13 @@ async function updateConfigViaFTP(ngrokUrl) {
       host: process.env.FTP_HOST,
       user: process.env.FTP_USER,
       password: process.env.FTP_PASS,
-      secure: process.env.FTP_SECURE === "true", // convert string to boolean
+      secure: process.env.FTP_SECURE === "true",
     });
-
-    // Create JSON data with the new ngrok URL
     const configData = JSON.stringify({ ngrokUrl: ngrokUrl });
-
-    // Convert the JSON buffer to a stream
     const sourceStream = bufferToStream(Buffer.from(configData));
-
-    // Retrieve the remote upload path from .env (e.g., "public_html/config.json")
     const remotePath = process.env.FTP_UPLOAD_PATH;
-
-    // Ensure the remote directory exists
     const remoteDir = pathModule.dirname(remotePath);
     await client.ensureDir(remoteDir);
-
-    // Upload the file
     await client.uploadFrom(sourceStream, remotePath);
     console.log("Configuration updated on FTP server.");
   } catch (err) {
@@ -155,12 +196,11 @@ async function updateConfigViaFTP(ngrokUrl) {
   client.close();
 }
 
-// Store our active ngrok listener so we can close it before starting again
+// Store active ngrok listener
 let activeNgrokListener = null;
 
-// Encapsulate ngrok forwarding so we can re-invoke it
+// Function to encapsulate ngrok forwarding
 async function startNgrokForward() {
-  // If a tunnel already exists, close it
   if (activeNgrokListener) {
     try {
       await activeNgrokListener.close();
@@ -169,32 +209,74 @@ async function startNgrokForward() {
       console.error("Error closing previous ngrok tunnel:", err);
     }
   }
-
-  // Create a new tunnel
   activeNgrokListener = await ngrok.forward({
     addr: "http://localhost:3000",
     authtoken_from_env: true,
     crt: fs.readFileSync("./credentials/cert.pem", "utf8"),
     key: fs.readFileSync("./credentials/key.pem", "utf8"),
   });
-
   console.log(`Ingress established at: ${activeNgrokListener.url()}`);
-
-  // Update the config file on your FTP server with the new ngrok URL
   await updateConfigViaFTP(activeNgrokListener.url());
 }
 
+// --- Routes ---
+
+// User Routes (GET route uses caching middleware)
+router.route("/users/:id").get(cacheUserMiddleware, userController.getUserById);
+router.route("/users/filter").post(userController.filterBy);
+router.route("/users/login/:studentno").post(userController.loginUser);
+router.route("/users/logout").post(userController.logoutUser);
+router.route("/users/reset").post(userController.resetUser);
+
+// Student Routes (GET route uses caching middleware; PUT route invalidates the cache)
+router
+  .route("/students/:id")
+  .get(cacheStudentMiddleware, studentController.getStudentById)
+  .put(async (req, res) => {
+    await studentController.updateStudent(req, res);
+    // Invalidate the cache for the student after update
+    const cacheKey = `student:${req.params.id}`;
+    try {
+      await redisClient.del(cacheKey);
+      console.log(`Cache invalidated for student id: ${req.params.id}`);
+    } catch (err) {
+      console.error("Error invalidating cache:", err);
+    }
+  });
+
+// Miscellaneous Routes with caching
+router
+  .route("/schedule/view")
+  .post(cacheGenericMiddleware, miscController.viewSchedule);
+router
+  .route("/evaluation/view")
+  .post(cacheGenericMiddleware, miscController.viewEvaluation);
+router
+  .route("/assessment/view")
+  .post(cacheGenericMiddleware, miscController.viewAssessment);
+router
+  .route("/payments/view")
+  .post(cacheGenericMiddleware, miscController.viewPayments);
+router
+  .route("/exams/count/:type")
+  .get(cacheGenericMiddleware, miscController.countExams);
+router
+  .route("/course/category")
+  .get(cacheGenericMiddleware, miscController.getCourse_category);
+router
+  .route("/config/defsysem")
+  .get(cacheGenericMiddleware, miscController.getDefSYSEM);
+router.route("/verify").get((req, res) => {
+  res.json({ access: true });
+});
+
 // Start HTTPS server
-var port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 app.listen(port, async () => {
   console.log("API is running at " + port);
-
-  // Start ngrok for the first time
   await startNgrokForward();
-
   setInterval(async () => {
     await startNgrokForward();
-  }, 14400000); // 4 hours in milliseconds
-
+  }, 14400000); // 4 hours
   process.stdin.resume();
 });

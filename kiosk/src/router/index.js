@@ -1,5 +1,5 @@
 // src/router/index.js
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import SignIn from "../auth/SigninPage.vue";
 import IndexPage from "../main/IndexPage.vue";
@@ -7,7 +7,7 @@ import Error403 from "../main/ErrorPage.vue";
 import { verifyServer } from "@/routeGuard";
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: "/",

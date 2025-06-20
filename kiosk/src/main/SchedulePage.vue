@@ -1,31 +1,19 @@
 <template>
   <div class="relative mb-4">
     <!-- Spinner overlay if loading -->
-    <div
-      v-if="loading"
-      class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50"
-    >
-      <div
-        class="w-16 h-16 border-8 border-gray-200 border-t-blue-500 rounded-full animate-spin"
-      ></div>
+    <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
+      <div class="w-16 h-16 border-8 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
     </div>
 
     <!-- Select Semester/Period -->
     <div class="p-2">
       <form class="flex items-center space-x-2">
         <label for="semester" class="sr-only">Select Semester/Period</label>
-        <select
-          id="semester"
+        <select id="semester"
           class="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-          v-model="semester"
-          @change="handleSemesterChange"
-        >
+          v-model="semester" @change="handleSemesterChange">
           <option value="">Select Semester/Period</option>
-          <option
-            v-for="semesterItem in semesters"
-            :value="semesterItem"
-            :key="semesterItem"
-          >
+          <option v-for="semesterItem in semesters" :value="semesterItem" :key="semesterItem">
             {{ semesterItem }}
           </option>
         </select>
@@ -49,11 +37,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="(item, index) in schedules"
-          :key="index"
-          class="border-b border-gray-200 hover:bg-gray-50"
-        >
+        <tr v-for="(item, index) in schedules" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
           <td class="px-4 py-2">{{ item.subjectcode }}</td>
           <td class="px-4 py-2">{{ item.subjectdesc }}</td>
           <td class="px-4 py-2">{{ item.term }}</td>
@@ -69,11 +53,7 @@
 
   <!-- STACKED layout for small screens -->
   <div class="block md:hidden space-y-3 px-2">
-    <div
-      v-for="(item, index) in schedules"
-      :key="index"
-      class="border border-gray-300 rounded p-3 bg-white shadow-sm"
-    >
+    <div v-for="(item, index) in schedules" :key="index" class="border border-gray-300 rounded p-3 bg-white shadow-sm">
       <!-- Each field is in its own row -->
       <div class="mb-2">
         <span class="font-semibold">Subject: </span>{{ item.subjectcode }}
@@ -175,8 +155,8 @@ export default {
       if (!this.activateSelect) {
         this.semester =
           userCategory === "college" || userCategory === "techvoch"
-            ? `${this.sem} ${currentYear - 1}-${currentYear}`
-            : `${currentYear - 1}-${currentYear}`;
+            ? `${this.sem} ${currentYear}-${currentYear + 1}`
+            : `${currentYear}-${currentYear + 1}`;
       }
     },
     handleSemesterChange(event) {
@@ -205,7 +185,7 @@ export default {
       const startYear = currentYear - 10;
       const semesters = [];
 
-      for (let year = currentYear; year >= startYear; year--) {
+      for (let year = currentYear + 1; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
         } else {

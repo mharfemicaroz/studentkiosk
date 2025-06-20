@@ -2,31 +2,19 @@
   <!-- Container with relative positioning to place the spinner overlay -->
   <div class="relative p-4">
     <!-- Spinner overlay when loading -->
-    <div
-      v-if="loading"
-      class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50"
-    >
-      <div
-        class="w-16 h-16 border-8 border-gray-200 border-t-blue-500 rounded-full animate-spin"
-      ></div>
+    <div v-if="loading" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-50">
+      <div class="w-16 h-16 border-8 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
     </div>
 
     <!-- Top row: Select Semester/Period -->
     <div class="mb-4">
       <form class="flex items-center space-x-2">
         <label for="semester" class="sr-only">Select Semester/Period</label>
-        <select
-          id="semester"
+        <select id="semester"
           class="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          v-model="semester"
-          @change="handleSemesterChange"
-        >
+          v-model="semester" @change="handleSemesterChange">
           <option value="">Select Semester/Period</option>
-          <option
-            v-for="semesterItem in semesters"
-            :value="semesterItem"
-            :key="semesterItem"
-          >
+          <option v-for="semesterItem in semesters" :value="semesterItem" :key="semesterItem">
             {{ semesterItem }}
           </option>
         </select>
@@ -51,13 +39,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(item, index) in assessment.filter(
-                    (o) => o.type === 'tuition'
-                  )"
-                  :key="index"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
+                <tr v-for="(item, index) in assessment.filter(
+                  (o) => o.type === 'tuition'
+                )" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 w-4/5">{{ item.name }}</td>
                   <td class="px-4 py-2 w-1/5 text-right">
                     {{
@@ -79,9 +63,9 @@
                         (assessment.find((o) => o.type === "tuition")
                           ?.remarks !== "Per SY"
                           ? assessment.find((o) => o.type === "tuition")
-                              ?.amount * totalUnits
+                            ?.amount * totalUnits
                           : assessment.find((o) => o.type === "tuition")
-                              ?.amount) * 100
+                            ?.amount) * 100
                       ) / 100
                     }}
                   </td>
@@ -92,13 +76,9 @@
 
           <!-- Stacked layout (SM) -->
           <div class="block md:hidden space-y-2">
-            <div
-              v-for="(item, index) in assessment.filter(
-                (o) => o.type === 'tuition'
-              )"
-              :key="index"
-              class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-            >
+            <div v-for="(item, index) in assessment.filter(
+              (o) => o.type === 'tuition'
+            )" :key="index" class="border border-gray-300 rounded p-2 bg-white shadow-sm">
               <div>
                 <span class="font-semibold">Name: </span>{{ item.name }}
               </div>
@@ -120,11 +100,11 @@
                 {{
                   Math.round(
                     (assessment.find((o) => o.type === "tuition")?.remarks !==
-                    "Per SY"
+                      "Per SY"
                       ? assessment.find((o) => o.type === "tuition")?.amount *
-                        totalUnits
+                      totalUnits
                       : assessment.find((o) => o.type === "tuition")?.amount) *
-                      100
+                    100
                   ) / 100
                 }}
               </span>
@@ -144,13 +124,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(item, index) in assessment.filter(
-                    (o) => o.type === 'regfee'
-                  )"
-                  :key="index"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
+                <tr v-for="(item, index) in assessment.filter(
+                  (o) => o.type === 'regfee'
+                )" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 w-4/5">{{ item.name }}</td>
                   <td class="px-4 py-2 w-1/5 text-right">{{ item.amount }}</td>
                 </tr>
@@ -172,13 +148,9 @@
 
           <!-- Stacked layout (SM) -->
           <div class="block md:hidden space-y-2">
-            <div
-              v-for="(item, index) in assessment.filter(
-                (o) => o.type === 'regfee'
-              )"
-              :key="index"
-              class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-            >
+            <div v-for="(item, index) in assessment.filter(
+              (o) => o.type === 'regfee'
+            )" :key="index" class="border border-gray-300 rounded p-2 bg-white shadow-sm">
               <div>
                 <span class="font-semibold">Name: </span>{{ item.name }}
               </div>
@@ -213,13 +185,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(item, index) in assessment.filter(
-                    (o) => o.type === 'misc' && o.remarks === 'n/a'
-                  )"
-                  :key="index"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
+                <tr v-for="(item, index) in assessment.filter(
+                  (o) => o.type === 'misc' && o.remarks === 'n/a'
+                )" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 w-4/5">{{ item.name }}</td>
                   <td class="px-4 py-2 w-1/5 text-right">{{ item.amount }}</td>
                 </tr>
@@ -241,13 +209,9 @@
 
           <!-- Stacked layout (SM) -->
           <div class="block md:hidden space-y-2">
-            <div
-              v-for="(item, index) in assessment.filter(
-                (o) => o.type === 'misc' && o.remarks === 'n/a'
-              )"
-              :key="index"
-              class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-            >
+            <div v-for="(item, index) in assessment.filter(
+              (o) => o.type === 'misc' && o.remarks === 'n/a'
+            )" :key="index" class="border border-gray-300 rounded p-2 bg-white shadow-sm">
               <div>
                 <span class="font-semibold">Name: </span>{{ item.name }}
               </div>
@@ -282,13 +246,9 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(item, index) in assessment.filter(
-                    (o) => o.type === 'otherfee' && o.remarks === 'n/a'
-                  )"
-                  :key="index"
-                  class="border-b border-gray-200 hover:bg-gray-50"
-                >
+                <tr v-for="(item, index) in assessment.filter(
+                  (o) => o.type === 'otherfee' && o.remarks === 'n/a'
+                )" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                   <td class="px-4 py-2 w-4/5">{{ item.name }}</td>
                   <td class="px-4 py-2 w-1/5 text-right">{{ item.amount }}</td>
                 </tr>
@@ -322,10 +282,10 @@
                           (assessment.find((o) => o.type === "tuition")
                             ?.remarks !== "Per SY"
                             ? assessment.find((o) => o.type === "tuition")
-                                ?.amount * totalUnits
+                              ?.amount * totalUnits
                             : assessment.find((o) => o.type === "tuition")
-                                ?.amount)) *
-                          100
+                              ?.amount)) *
+                        100
                       ) / 100
                     }}
                   </td>
@@ -336,13 +296,9 @@
 
           <!-- Stacked layout (SM) -->
           <div class="block md:hidden space-y-2">
-            <div
-              v-for="(item, index) in assessment.filter(
-                (o) => o.type === 'otherfee' && o.remarks === 'n/a'
-              )"
-              :key="index"
-              class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-            >
+            <div v-for="(item, index) in assessment.filter(
+              (o) => o.type === 'otherfee' && o.remarks === 'n/a'
+            )" :key="index" class="border border-gray-300 rounded p-2 bg-white shadow-sm">
               <div>
                 <span class="font-semibold">Name: </span>{{ item.name }}
               </div>
@@ -383,10 +339,10 @@
                         (assessment.find((o) => o.type === "tuition")
                           ?.remarks !== "Per SY"
                           ? assessment.find((o) => o.type === "tuition")
-                              ?.amount * totalUnits
+                            ?.amount * totalUnits
                           : assessment.find((o) => o.type === "tuition")
-                              ?.amount)) *
-                        100
+                            ?.amount)) *
+                      100
                     ) / 100
                   }}
                 </span>
@@ -415,11 +371,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(item, index) in payments"
-                :key="index"
-                class="border-b border-gray-200 hover:bg-gray-50"
-              >
+              <tr v-for="(item, index) in payments" :key="index" class="border-b border-gray-200 hover:bg-gray-50">
                 <td class="px-4 py-2">{{ item.orno }}</td>
                 <td class="px-4 py-2">{{ item.cashier }}</td>
                 <td class="px-4 py-2">{{ item.formatdate }}</td>
@@ -445,11 +397,8 @@
 
         <!-- Stacked layout (SM) -->
         <div class="block md:hidden space-y-2 mb-4">
-          <div
-            v-for="(item, index) in payments"
-            :key="index"
-            class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-          >
+          <div v-for="(item, index) in payments" :key="index"
+            class="border border-gray-300 rounded p-2 bg-white shadow-sm">
             <div><span class="font-semibold">OR No: </span>{{ item.orno }}</div>
             <div>
               <span class="font-semibold">Cashier: </span>{{ item.cashier }}
@@ -491,11 +440,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="(installment, index) in installmentDetails"
-                :key="index"
-                class="border-b border-gray-200 hover:bg-gray-50"
-              >
+              <tr v-for="(installment, index) in installmentDetails" :key="index"
+                class="border-b border-gray-200 hover:bg-gray-50">
                 <td class="px-4 py-2">{{ installment.period }}</td>
                 <td class="px-4 py-2">
                   {{ installment.paid ? "Paid" : "Not Paid" }}
@@ -517,26 +463,20 @@
 
         <!-- Stacked layout (SM) -->
         <div class="block md:hidden space-y-2">
-          <div
-            v-for="(installment, index) in installmentDetails"
-            :key="index"
-            class="border border-gray-300 rounded p-2 bg-white shadow-sm"
-          >
+          <div v-for="(installment, index) in installmentDetails" :key="index"
+            class="border border-gray-300 rounded p-2 bg-white shadow-sm">
             <div>
-              <span class="font-semibold">Period: </span
-              >{{ installment.period }}
+              <span class="font-semibold">Period: </span>{{ installment.period }}
             </div>
             <div>
               <span class="font-semibold">Status: </span>
               {{ installment.paid ? "Paid" : "Not Paid" }}
             </div>
             <div>
-              <span class="font-semibold">Payment: </span
-              >{{ installment.amount }}
+              <span class="font-semibold">Payment: </span>{{ installment.amount }}
             </div>
             <div>
-              <span class="font-semibold">Balance: </span
-              >{{ installment.balance }}
+              <span class="font-semibold">Balance: </span>{{ installment.balance }}
             </div>
           </div>
           <!-- Overall Balance -->
@@ -584,7 +524,7 @@ export default {
       return (
         Math.round(
           this.payments.reduce((acc, item) => acc + parseFloat(item.cash), 0) *
-            100
+          100
         ) / 100
       );
     },
@@ -596,15 +536,15 @@ export default {
             .filter((o) => o.type !== "tuition" && o?.remarks === "n/a")
             .reduce((acc, item) => acc + parseFloat(item.amount), 0) +
             (this.assessment.find((o) => o.type === "tuition")?.remarks !==
-            "Per SY"
+              "Per SY"
               ? this.assessment.find((o) => o.type === "tuition")?.amount *
-                this.totalUnits
+              this.totalUnits
               : this.assessment.find((o) => o.type === "tuition")?.amount) -
             this.payments.reduce(
               (acc, item) => acc + parseFloat(item.cash),
               0
             )) *
-            100
+          100
         ) / 100
       );
     },
@@ -622,9 +562,9 @@ export default {
           .filter((o) => o.type !== "tuition" && o?.remarks === "n/a")
           .reduce((acc, item) => acc + parseFloat(item.amount), 0) +
           (this.assessment.find((o) => o.type === "tuition")?.remarks !==
-          "Per SY"
+            "Per SY"
             ? this.assessment.find((o) => o.type === "tuition")?.amount *
-              this.totalUnits
+            this.totalUnits
             : this.assessment.find((o) => o.type === "tuition")?.amount) -
           this.payments
             .filter((o) => o._log === "DOWN_PAYMENT")
@@ -730,8 +670,8 @@ export default {
       if (!this.activateSelect) {
         this.semester =
           userCategory === "college" || userCategory === "techvoch"
-            ? `${this.sem} ${currentYear - 1}-${currentYear}`
-            : `${currentYear - 1}-${currentYear}`;
+            ? `${this.sem} ${currentYear}-${currentYear + 1}`
+            : `${currentYear}-${currentYear + 1}`;
       }
     },
     // Populate the semester dropdown
@@ -740,7 +680,7 @@ export default {
       const startYear = currentYear - 10;
       const semesters = [];
 
-      for (let year = currentYear; year >= startYear; year--) {
+      for (let year = currentYear + 1; year >= startYear; year--) {
         if (this.type === "shs_jhs") {
           semesters.push(`${year - 1}-${year}`);
         } else {

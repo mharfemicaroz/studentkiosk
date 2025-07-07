@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const userController = require("./controllers/userController");
 const studentController = require("./controllers/studentController");
 const miscController = require("./controllers/miscController");
+const chartController = require("./controllers/chartController");
 const ftp = require("basic-ftp");
 const { Readable } = require("stream");
 const pathModule = require("path");
@@ -79,7 +80,9 @@ router.use((request, response, next) => {
   if (
     request.originalUrl.startsWith("/api/users/login") ||
     request.originalUrl.startsWith("/api/users/reset") ||
-    request.originalUrl.startsWith("/api/verify")
+    request.originalUrl.startsWith("/api/verify") ||
+    request.originalUrl.startsWith("/api/chart/transactionReport/view") ||
+    request.originalUrl.startsWith("/api/chart/transactionsByCourse/view")
   ) {
     return next();
   }
@@ -245,6 +248,12 @@ router
   });
 
 // Miscellaneous Routes with caching
+router
+  .route("/chart/transactionReport/view")
+  .post(cacheGenericMiddleware, chartController.transactionsReport);
+router
+  .route("/chart/transactionsByCourse/view")
+  .post(cacheGenericMiddleware, chartController.transactionsByCourse);
 router
   .route("/schedule/view")
   .post(cacheGenericMiddleware, miscController.viewSchedule);

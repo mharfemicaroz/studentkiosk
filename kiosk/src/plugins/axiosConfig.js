@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const CONFIG_URL = "https://area51.ph/config_ndci.json";
+const CONFIG_URL = "https://area51.ph/config_temp.json";
 
 async function initializeAxios() {
   let axiosInstance = null;

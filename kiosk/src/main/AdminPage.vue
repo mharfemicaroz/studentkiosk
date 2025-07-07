@@ -120,12 +120,21 @@ const fetchCourseChart = async () => {
 }
 
 /* quick-summary */
-const summaryData = ref({ daily: null, monthly: null, yearly: null })
+const summaryData = ref({
+    daily: null,
+    weekly: null,
+    quarterly: null,
+    semi: null,
+    monthly: null,
+    yearly: null
+})
 
 async function getTotal(fromISO, toISO, gran = 'daily') {
     const rows = await viewChart({ from: fromISO, to: toISO, granularity: gran })
     return rows.reduce((s, r) => s + (r.totalCash || 0), 0)
 }
+
+
 
 const fetchSummary = async () => {
     loadingSummary.value = true
@@ -141,13 +150,43 @@ const fetchSummary = async () => {
         const prevYS = prevY.startOf('year').format('YYYY-MM-DD')
         const prevYE = prevY.endOf('year').format('YYYY-MM-DD')
 
+        /* ---------- WEEK ------------ */
+        const weekStart = dayjs().startOf('week')    // Monday
+        const weekEnd = dayjs().endOf('week')
+        const prevWEnd = weekStart.subtract(1, 'day')
+        const prevWStart = prevWEnd.startOf('week')
+
+        /* ---------- QUARTER --------- */
+        const qStart = dayjs().startOf('quarter')
+        const qEnd = dayjs().endOf('quarter')
+        const prevQEnd = qStart.subtract(1, 'day')
+        const prevQStart = prevQEnd.startOf('quarter')
+
+        /* ------ SEMI-ANNUAL --------- */
+        const semiStart = dayjs().month() < 6 ? dayjs().startOf('year')
+            : dayjs().month(6).startOf('month') // Jul-01
+        const semiEnd = dayjs().month() < 6 ? dayjs().month(5).endOf('month')    // Jun-30
+            : dayjs().endOf('year')
+        const prevSemiEnd = semiStart.subtract(1, 'day')
+        const prevSemiStart = prevSemiEnd.month() < 6 ? prevSemiEnd.startOf('year')
+            : prevSemiEnd.month(6).startOf('month')
+
         const [
             todayT, yestT,
+            thisWTot, prevWTot,
+            thisQTot, prevQTot,
+            thisSTot, prevSTot,
             thisMT, prevMT,
             thisYT, prevYT
         ] = await Promise.all([
             getTotal(today, today, 'daily'),
             getTotal(yest, yest, 'daily'),
+            getTotal(weekStart.format('YYYY-MM-DD'), weekEnd.format('YYYY-MM-DD'), 'weekly'),
+            getTotal(prevWStart.format('YYYY-MM-DD'), prevWEnd.format('YYYY-MM-DD'), 'weekly'),
+            getTotal(qStart.format('YYYY-MM-DD'), qEnd.format('YYYY-MM-DD'), 'monthly'),
+            getTotal(prevQStart.format('YYYY-MM-DD'), prevQEnd.format('YYYY-MM-DD'), 'monthly'),
+            getTotal(semiStart.format('YYYY-MM-DD'), semiEnd.format('YYYY-MM-DD'), 'monthly'),
+            getTotal(prevSemiStart.format('YYYY-MM-DD'), prevSemiEnd.format('YYYY-MM-DD'), 'monthly'),
             getTotal(mStart, today, 'monthly'),
             getTotal(prevMS, prevME, 'monthly'),
             getTotal(yStart, today, 'yearly'),
@@ -158,6 +197,9 @@ const fetchSummary = async () => {
 
         summaryData.value = {
             daily: { now: todayT, prev: yestT, pct: pct(todayT, yestT) },
+            weekly: { now: thisWTot, prev: prevWTot, pct: pct(thisWTot, prevWTot) },
+            quarterly: { now: thisQTot, prev: prevQTot, pct: pct(thisQTot, prevQTot) },
+            semi: { now: thisSTot, prev: prevSTot, pct: pct(thisSTot, prevSTot) },
             monthly: { now: thisMT, prev: prevMT, pct: pct(thisMT, prevMT) },
             yearly: { now: thisYT, prev: prevYT, pct: pct(thisYT, prevYT) }
         }
@@ -391,7 +433,7 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                         <div class="border-4 border-gray-200 border-t-accent rounded-full w-16 h-16 animate-spin"></div>
                     </div>
                     <template v-else>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
                             <!-- DAILY -->
                             <div class="p-6 rounded shadow bg-blue-50 border-t-4 border-blue-500">
@@ -407,6 +449,23 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                                 </p>
                             </div>
 
+                            <!-- WEEKLY -->
+                            <div class="p-6 rounded shadow bg-purple-50 border-t-4 border-purple-500">
+                                <div class="flex items-center mb-2">
+                                    <i class="mdi mdi-calendar-week text-3xl text-purple-600 mr-2"></i>
+                                    <h3 class="text-lg font-bold text-purple-800">Weekly</h3>
+                                </div>
+                                <p class="text-sm text-gray-600">
+                                    This Week: <span class="font-bold">{{ money(summaryData.weekly?.now) }}</span>
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    Prev Week: {{ money(summaryData.weekly?.prev) }}
+                                </p>
+                                <p :class="['text-sm font-bold', pctColor(+summaryData.weekly?.pct)]">
+                                    {{ summaryData.weekly?.pct }} %
+                                </p>
+                            </div>
+
                             <!-- MONTHLY -->
                             <div class="p-6 rounded shadow bg-green-50 border-t-4 border-green-500">
                                 <div class="flex items-center mb-2">
@@ -419,6 +478,40 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                                 </p>
                                 <p :class="['text-sm font-bold', pctColor(+summaryData.monthly?.pct)]">
                                     {{ summaryData.monthly?.pct }} %
+                                </p>
+                            </div>
+
+                            <!-- QUARTERLY -->
+                            <div class="p-6 rounded shadow bg-indigo-50 border-t-4 border-indigo-500">
+                                <div class="flex items-center mb-2">
+                                    <i class="mdi mdi-calendar-quarter text-3xl text-indigo-600 mr-2"></i>
+                                    <h3 class="text-lg font-bold text-indigo-800">Quarterly</h3>
+                                </div>
+                                <p class="text-sm text-gray-600">
+                                    This Qtr: <span class="font-bold">{{ money(summaryData.quarterly?.now) }}</span>
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    Prev Qtr: {{ money(summaryData.quarterly?.prev) }}
+                                </p>
+                                <p :class="['text-sm font-bold', pctColor(+summaryData.quarterly?.pct)]">
+                                    {{ summaryData.quarterly?.pct }} %
+                                </p>
+                            </div>
+
+                            <!-- SEMI-ANNUAL -->
+                            <div class="p-6 rounded shadow bg-teal-50 border-t-4 border-teal-500">
+                                <div class="flex items-center mb-2">
+                                    <i class="mdi mdi-calendar-collapse-horizontal text-3xl text-teal-600 mr-2"></i>
+                                    <h3 class="text-lg font-bold text-teal-800">Semi-Annual</h3>
+                                </div>
+                                <p class="text-sm text-gray-600">
+                                    This Semi: <span class="font-bold">{{ money(summaryData.semi?.now) }}</span>
+                                </p>
+                                <p class="text-sm text-gray-600">
+                                    Prev Semi: {{ money(summaryData.semi?.prev) }}
+                                </p>
+                                <p :class="['text-sm font-bold', pctColor(+summaryData.semi?.pct)]">
+                                    {{ summaryData.semi?.pct }} %
                                 </p>
                             </div>
 

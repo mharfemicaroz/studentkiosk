@@ -475,8 +475,9 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
         <footer class="bg-primary p-4 text-center text-white">
             <p class="text-sm">
                 2024 © Admin Dashboard by
-                <a href="https://area51.ph" target="_blank" class="text-yellow-300 hover:underline">
-                    Area51 PH
+                <a href="https://www.facebook.com/mharfe.micaroz" target="_blank"
+                    class="text-yellow-300 hover:underline">
+                    Mharfe Micaroz
                 </a>
             </p>
         </footer>

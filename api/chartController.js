@@ -1,16 +1,9 @@
 const sql = require("mssql");
 const views = require("../views");
 
-function parseDate(input, isEnd = false) {
-  if (!input) return null;
-  const hasTime = /\d{2}:\d{2}:\d{2}/.test(input);
-  const d = new Date(input);
-  if (!hasTime && isEnd) d.setHours(23, 59, 59, 997);
-  return d;
-}
-
 async function transactionsReport(req, res) {
   try {
+    /*──────────── 1. parameters ────────────*/
     const {
       sy = null,
       sem = null,
@@ -21,10 +14,12 @@ async function transactionsReport(req, res) {
       granularity = "daily",
     } = req.body;
 
-    const fromDate =
-      parseDate(fromStr) || new Date(new Date().getFullYear(), 0, 1);
-    const toDate = parseDate(toStr, true) || new Date();
+    const fromDate = fromStr
+      ? new Date(fromStr)
+      : new Date(new Date().getFullYear(), 0, 1); // 1-Jan-YYYY
+    const toDate = toStr ? new Date(toStr) : new Date(); // today
 
+    /*──────────── 2. bucket helpers ────────*/
     let seriesCTE, bucketExpr, labelExpr;
 
     switch (granularity.toLowerCase()) {
@@ -37,9 +32,10 @@ async function transactionsReport(req, res) {
             UNION ALL
             SELECT DATEADD(WEEK , 1, period_key)
               FROM series
-             WHERE DATEADD(WEEK , 1, period_key) <= DATEADD(WEEK , DATEDIFF(WEEK , 0, @ToDate), 0)
+             WHERE period_key < @ToDate
           )`;
         break;
+
       case "monthly":
         bucketExpr = `DATEFROMPARTS(YEAR(t.dateoftrans), MONTH(t.dateoftrans), 1)`;
         labelExpr = `FORMAT(s.period_key, 'MMM yyyy')`;
@@ -49,9 +45,10 @@ async function transactionsReport(req, res) {
             UNION ALL
             SELECT DATEADD(MONTH , 1, period_key)
               FROM series
-             WHERE DATEADD(MONTH , 1, period_key) <= DATEFROMPARTS(YEAR(@ToDate), MONTH(@ToDate), 1)
+             WHERE period_key < @ToDate
           )`;
         break;
+
       case "yearly":
         bucketExpr = `DATEFROMPARTS(YEAR(t.dateoftrans), 1, 1)`;
         labelExpr = `FORMAT(s.period_key, 'yyyy')`;
@@ -61,9 +58,11 @@ async function transactionsReport(req, res) {
             UNION ALL
             SELECT DATEADD(YEAR , 1, period_key)
               FROM series
-             WHERE DATEADD(YEAR , 1, period_key) <= DATEFROMPARTS(YEAR(@ToDate), 1, 1)
+             WHERE period_key < @ToDate
           )`;
         break;
+
+      /*– daily (default) –*/
       default:
         bucketExpr = `CAST(t.dateoftrans AS DATE)`;
         labelExpr = `FORMAT(s.period_key, 'yyyy-MM-dd')`;
@@ -73,10 +72,11 @@ async function transactionsReport(req, res) {
             UNION ALL
             SELECT DATEADD(DAY , 1, period_key)
               FROM series
-             WHERE DATEADD(DAY , 1, period_key) <= CAST(@ToDate AS DATE)
+             WHERE period_key < @ToDate
           )`;
     }
 
+    /*──────────── 3. filters ───────────────*/
     const filters = `
         t.deleted      = 0
         AND t.dateoftrans >= @FromDate
@@ -87,6 +87,7 @@ async function transactionsReport(req, res) {
         AND (@Mjr IS NULL OR t.mjr = @Mjr)
     `;
 
+    /*──────────── 4. main query ────────────*/
     const query = `
       ;WITH
       ${seriesCTE},
@@ -94,41 +95,48 @@ async function transactionsReport(req, res) {
       agg AS (
         SELECT
           ${bucketExpr} AS period_key,
-          SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT') THEN t.cash ELSE 0 END) AS tuitionCash,
-          SUM(CASE WHEN t._log = 'PAY_OTHER' THEN t.cash ELSE 0 END)                         AS otherCash
+          SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT')
+                   THEN t.cash ELSE 0 END)                     AS tuitionCash,
+          SUM(CASE WHEN t._log = 'PAY_OTHER'
+                   THEN t.cash ELSE 0 END)                     AS otherCash
         FROM sa_transaction t
         WHERE ${filters}
         GROUP BY ${bucketExpr}
       )
 
       SELECT
-        ${labelExpr}                              AS period,
+        ${labelExpr}                               AS period,
         COALESCE(agg.tuitionCash, 0)              AS tuitionCash,
         COALESCE(agg.otherCash,   0)              AS otherCash,
-        COALESCE(agg.tuitionCash, 0) + COALESCE(agg.otherCash, 0) AS totalCash
+        COALESCE(agg.tuitionCash, 0) +
+        COALESCE(agg.otherCash,   0)              AS totalCash
       FROM series s
-      LEFT JOIN agg ON agg.period_key = s.period_key
+      LEFT JOIN agg
+             ON agg.period_key = s.period_key
       ORDER BY s.period_key
       OPTION (MAXRECURSION 0);
     `;
 
+    /*──────────── 5. execute ───────────────*/
     const rows = await views.queryDatabase(query, [
-      { name: "FromDate", type: sql.DateTime2, value: fromDate },
-      { name: "ToDate", type: sql.DateTime2, value: toDate },
+      { name: "FromDate", type: sql.Date, value: fromDate },
+      { name: "ToDate", type: sql.Date, value: toDate },
       { name: "Sy", type: sql.NVarChar, value: sy },
       { name: "Sem", type: sql.NVarChar, value: sem },
       { name: "Crs", type: sql.NVarChar, value: crs },
       { name: "Mjr", type: sql.NVarChar, value: mjr },
     ]);
 
-    res.json(rows[0]);
-  } catch {
+    res.json(rows[0]); // rows[0] = recordset
+  } catch (err) {
+    console.error(err);
     res.status(500).send("Error retrieving cash report from database");
   }
 }
 
 async function transactionsByCourse(req, res) {
   try {
+    /*──────── 1. parameters ────────*/
     const {
       sy = null,
       sem = null,
@@ -136,36 +144,44 @@ async function transactionsByCourse(req, res) {
       to: toStr = null,
     } = req.body;
 
-    const fromDate =
-      parseDate(fromStr) || new Date(new Date().getFullYear(), 0, 1);
-    const toDate = parseDate(toStr, true) || new Date();
+    const fromDate = fromStr
+      ? new Date(fromStr)
+      : new Date(new Date().getFullYear(), 0, 1); // 1-Jan-YYYY
 
+    const toDate = toStr ? new Date(toStr) : new Date(); // today
+
+    /*──────── 2. query ─────────────*/
     const query = `
       SELECT
-        t.crs                                    AS course,
-        NULLIF(t.mjr,'')                         AS mjr,
-        SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT') THEN t.cash ELSE 0 END) AS tuitionCash,
-        SUM(CASE WHEN t._log = 'PAY_OTHER' THEN t.cash ELSE 0 END)                          AS otherCash,
-        SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT','PAY_OTHER') THEN t.cash ELSE 0 END) AS totalCash
+        t.crs                                       AS course,
+        NULLIF(t.mjr,'')                            AS mjr,   -- show null instead of empty string
+        SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT')
+                 THEN t.cash ELSE 0 END)            AS tuitionCash,
+        SUM(CASE WHEN t._log = 'PAY_OTHER'
+                 THEN t.cash ELSE 0 END)            AS otherCash,
+        SUM(CASE WHEN t._log IN ('INSTALLMENT_FEE','DOWN_PAYMENT','PAY_OTHER')
+                 THEN t.cash ELSE 0 END)            AS totalCash
       FROM sa_transaction t
-      WHERE t.deleted = 0
-        AND t.dateoftrans >= @FromDate
-        AND t.dateoftrans <= @ToDate
+      WHERE t.deleted         = 0
+        AND t.dateoftrans    >= @FromDate
+        AND t.dateoftrans    <= @ToDate
         AND (@Sy  IS NULL OR t.sy  = @Sy )
         AND (@Sem IS NULL OR t.sem = @Sem)
       GROUP BY t.crs, t.mjr
       ORDER BY t.crs, t.mjr;
     `;
 
+    /*──────── 3. execute ───────────*/
     const rows = await views.queryDatabase(query, [
-      { name: "FromDate", type: sql.DateTime2, value: fromDate },
-      { name: "ToDate", type: sql.DateTime2, value: toDate },
+      { name: "FromDate", type: sql.Date, value: fromDate },
+      { name: "ToDate", type: sql.Date, value: toDate },
       { name: "Sy", type: sql.NVarChar, value: sy },
       { name: "Sem", type: sql.NVarChar, value: sem },
     ]);
 
-    res.json(rows[0]);
-  } catch {
+    res.json(rows[0]); // recordset
+  } catch (err) {
+    console.error(err);
     res.status(500).send("Error generating course-wise cash report");
   }
 }

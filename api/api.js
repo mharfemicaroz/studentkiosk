@@ -250,10 +250,10 @@ router
 // Miscellaneous Routes with caching
 router
   .route("/chart/transactionReport/view")
-  .post(cacheGenericMiddleware, chartController.transactionsReport);
+  .post(chartController.transactionsReport);
 router
   .route("/chart/transactionsByCourse/view")
-  .post(cacheGenericMiddleware, chartController.transactionsByCourse);
+  .post(chartController.transactionsByCourse);
 router
   .route("/schedule/view")
   .post(cacheGenericMiddleware, miscController.viewSchedule);

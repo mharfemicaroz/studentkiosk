@@ -1,13 +1,16 @@
 <script setup>
-/* ── core ────────────────────────────────────────── */
+/* ───────── core ──────────────────────────────── */
 import { ref, computed, watch, onMounted } from 'vue'
 import dayjs from 'dayjs'
 
-/* ── stores / services ───────────────────────────── */
+/* ───────── stores & services ─────────────────── */
 import { useChartStore } from '@/stores/chartStore'
-import { viewChart, viewCourseChart } from '@/services/chartServices'
+import {
+    viewChart,
+    viewCourseChart
+} from '@/services/chartServices'
 
-/* ── UI helpers ──────────────────────────────────── */
+/* ───────── UI helpers ────────────────────────── */
 import Datepicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
 import LineChart from '@/components/Charts/LineChart.vue'
@@ -15,14 +18,11 @@ import BarChart from '@/components/Charts/BarChart.vue'
 import DoughnutChart from '@/components/Charts/DoughnutChart.vue'
 import ToasterComponent from '@/common/ToasterComponent.vue'
 
-/* ── state ───────────────────────────────────────── */
+/* ───────── reactive state ────────────────────── */
 const chartStore = useChartStore()
-
-/* main tabs: summary | period | course */
-const selectedTab = ref('summary')         // Summary is default
-
-/* inside Course tab toggle */
-const courseView = ref('course')          // 'course' | 'department'
+const selectedTab = ref('summary')            // summary | period | course
+const courseView = ref('course')             // course | department
+const showSidebar = ref(true)
 
 /* loading flags */
 const loadingSummary = ref(false)
@@ -30,23 +30,27 @@ const loadingPeriod = ref(false)
 const loadingCourse = ref(false)
 const uiLoading = ref(false)
 
-/* sidebar */
-const showSidebar = ref(true)
-
 /* shared filters */
 const sy = ref('')
 const sem = ref('')
-const dateRange = ref([new Date('2024-01-01'), new Date()])  // [from,to]
+const dateRange = ref([new Date('2024-01-01'), new Date()])   // [from,to]
 
-/* period-specific */
+/* period-specific filters */
 const crs = ref('')
 const mjr = ref('')
 const granularity = ref('monthly')
 
+/* ───────── course / major dropdown data ──────── */
+const coursesList = ref([])       // [ { course:'BSIT', majors:['NA','SysDev'] }, … ]
+const majorsForCourse = computed(() => {
+    const found = coursesList.value.find(c => c.course === crs.value)
+    return found ? found.majors : []
+})
+
 /* admin name */
 const fullName = 'Admin'
 
-/* classify course → department */
+/* ───────── helpers ───────────────────────────── */
 function getDept(course) {
     if (/NC\s*II/i.test(course)) return 'TESDA'
     if (/SHS/i.test(course)) return 'Senior High'
@@ -56,13 +60,42 @@ function getDept(course) {
     return 'College'
 }
 
-/* ── API helpers ─────────────────────────────────── */
+/* peso-format */
+const money = v =>
+    v == null
+        ? '₱0.00'
+        : `₱${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+const pctColor = p => p >= 0 ? 'text-green-600' : 'text-red-600'
+
+/* ───────── API fetchers ───────────────────────── */
+const fetchCourseList = async () => {
+    /** grab wide-range course data just once for dropdowns */
+    try {
+        const rows = await viewCourseChart({
+            from: '2000-01-01',
+            to: dayjs().format('YYYY-MM-DD')
+        })
+        const bucket = {}
+        rows.forEach(r => {
+            if (!bucket[r.course]) bucket[r.course] = new Set()
+            bucket[r.course].add(r.mjr)
+        })
+        coursesList.value = Object.entries(bucket).map(([course, majSet]) => ({
+            course,
+            majors: Array.from(majSet).filter(Boolean)
+        }))
+    } catch (e) { console.error('load course list', e) }
+}
+
 const fetchPeriodChart = async () => {
     loadingPeriod.value = true
     try {
         const payload = {
-            sy: sy.value || null, sem: sem.value || null,
-            crs: crs.value || null, mjr: mjr.value || null,
+            sy: sy.value || null,
+            sem: sem.value || null,
+            crs: crs.value || null,
+            mjr: mjr.value || null,
             from: dayjs(dateRange.value[0]).format('YYYY-MM-DD'),
             to: dayjs(dateRange.value[1]).format('YYYY-MM-DD'),
             granularity: granularity.value
@@ -86,70 +119,65 @@ const fetchCourseChart = async () => {
     } finally { loadingCourse.value = false }
 }
 
-/* getTotal helper used by summary */
+/* quick-summary */
+const summaryData = ref({ daily: null, monthly: null, yearly: null })
+
 async function getTotal(fromISO, toISO, gran = 'daily') {
     const rows = await viewChart({ from: fromISO, to: toISO, granularity: gran })
     return rows.reduce((s, r) => s + (r.totalCash || 0), 0)
 }
 
-const summaryData = ref({
-    daily: null,
-    monthly: null,
-    yearly: null
-})
-
 const fetchSummary = async () => {
     loadingSummary.value = true
     try {
         const today = dayjs().format('YYYY-MM-DD')
-        const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
-
-        const monthStart = dayjs().startOf('month').format('YYYY-MM-DD')
-        const prevMEndDay = dayjs().startOf('month').subtract(1, 'day')
-        const prevMStart = prevMEndDay.startOf('month').format('YYYY-MM-DD')
-        const prevMEnd = prevMEndDay.format('YYYY-MM-DD')
-
-        const yearStart = dayjs().startOf('year').format('YYYY-MM-DD')
-        const prevYear = dayjs().subtract(1, 'year')
-        const prevYStart = prevYear.startOf('year').format('YYYY-MM-DD')
-        const prevYEnd = prevYear.endOf('year').format('YYYY-MM-DD')
+        const yest = dayjs().subtract(1, 'day').format('YYYY-MM-DD')
+        const mStart = dayjs().startOf('month').format('YYYY-MM-DD')
+        const prevMEnd = dayjs().startOf('month').subtract(1, 'day')
+        const prevMS = prevMEnd.startOf('month').format('YYYY-MM-DD')
+        const prevME = prevMEnd.format('YYYY-MM-DD')
+        const yStart = dayjs().startOf('year').format('YYYY-MM-DD')
+        const prevY = dayjs().subtract(1, 'year')
+        const prevYS = prevY.startOf('year').format('YYYY-MM-DD')
+        const prevYE = prevY.endOf('year').format('YYYY-MM-DD')
 
         const [
-            todayTot, yestTot,
-            thisMTot, prevMTot,
-            thisYTot, prevYTot
+            todayT, yestT,
+            thisMT, prevMT,
+            thisYT, prevYT
         ] = await Promise.all([
             getTotal(today, today, 'daily'),
-            getTotal(yesterday, yesterday, 'daily'),
-            getTotal(monthStart, today, 'monthly'),
-            getTotal(prevMStart, prevMEnd, 'monthly'),
-            getTotal(yearStart, today, 'yearly'),
-            getTotal(prevYStart, prevYEnd, 'yearly')
+            getTotal(yest, yest, 'daily'),
+            getTotal(mStart, today, 'monthly'),
+            getTotal(prevMS, prevME, 'monthly'),
+            getTotal(yStart, today, 'yearly'),
+            getTotal(prevYS, prevYE, 'yearly')
         ])
 
-        const pct = (now, prev) => prev === 0 ? 0 : (((now - prev) / prev) * 100).toFixed(1)
+        const pct = (n, p) => p === 0 ? 0 : (((n - p) / p) * 100).toFixed(1)
 
         summaryData.value = {
-            daily: { now: todayTot, prev: yestTot, pct: pct(todayTot, yestTot) },
-            monthly: { now: thisMTot, prev: prevMTot, pct: pct(thisMTot, prevMTot) },
-            yearly: { now: thisYTot, prev: prevYTot, pct: pct(thisYTot, prevYTot) }
+            daily: { now: todayT, prev: yestT, pct: pct(todayT, yestT) },
+            monthly: { now: thisMT, prev: prevMT, pct: pct(thisMT, prevMT) },
+            yearly: { now: thisYT, prev: prevYT, pct: pct(thisYT, prevYT) }
         }
     } catch (e) { console.error(e) }
     finally { loadingSummary.value = false }
 }
 
-/* auto-fetch on tab changes */
-watch(selectedTab, t => {
-    if (t === 'summary' && !summaryData.value.daily) fetchSummary()
-    if (t === 'period' && !chartStore.periodChartData.length) fetchPeriodChart()
-    if (t === 'course' && !chartStore.courseChartData.length) fetchCourseChart()
+/* ───────── auto-fetch / watchers ──────────────── */
+onMounted(async () => {
+    await fetchCourseList()      // dropdown data
+    await fetchSummary()         // summary tab (default)
 })
 
-/* initial fetch (summary first) */
-onMounted(fetchSummary)
+watch(selectedTab, tab => {
+    if (tab === 'summary' && !summaryData.value.daily) fetchSummary()
+    if (tab === 'period' && !chartStore.periodChartData.length) fetchPeriodChart()
+    if (tab === 'course' && !chartStore.courseChartData.length) fetchCourseChart()
+})
 
-/* ── computed datasets ───────────────────────────── */
-/* period line chart */
+/* ───────── computed datasets ───────────────────── */
 const periodChartData = computed(() => {
     const rows = chartStore.periodChartData
     return {
@@ -162,12 +190,11 @@ const periodChartData = computed(() => {
     }
 })
 
-/* course & department datasets */
 const courseLabels = computed(() => {
     const rows = chartStore.courseChartData
     if (courseView.value === 'course') return rows.map(r => r.mjr ? `${r.course} – ${r.mjr}` : r.course)
-    const buckets = {}; rows.forEach(r => { const d = getDept(r.course); buckets[d] = (buckets[d] || 0) + r.totalCash })
-    return Object.keys(buckets)
+    const b = {}; rows.forEach(r => { const d = getDept(r.course); b[d] = (b[d] || 0) + r.totalCash })
+    return Object.keys(b)
 })
 const courseValues = computed(() => {
     const rows = chartStore.courseChartData
@@ -191,25 +218,15 @@ const doughnutChartData = computed(() => ({
     }]
 }))
 
-const pctColor = p => p >= 0 ? 'text-green-600' : 'text-red-600'
-
-const money = (v) =>
-    v === undefined || v === null
-        ? '₱0.00'
-        : `₱${Number(v).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        })}`;
-
-
-/* misc ui */
+/* ───────── misc ui ─────────────────────────────── */
 const toggleSidebar = () => (showSidebar.value = !showSidebar.value)
 const logout = () => { uiLoading.value = true; window.location = '/' }
 </script>
 
 <template>
     <div id="wrapper" class="min-h-screen flex flex-col">
-        <!-- FULL-PAGE LOGOUT SPINNER -->
+
+        <!-- LOGOUT SPINNER -->
         <div v-if="uiLoading" class="fixed inset-0 bg-white/80 flex items-center justify-center z-50">
             <div class="border-8 border-gray-200 border-t-accent rounded-full w-24 h-24 animate-spin"></div>
         </div>
@@ -235,33 +252,26 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
         </header>
 
         <div class="flex flex-1">
+
             <!-- SIDEBAR -->
             <aside class="w-64 bg-secondary text-white p-4 hidden md:block">
                 <nav>
                     <h2 class="text-lg font-bold mb-4 text-yellow-300">Reports</h2>
                     <ul>
-                        <li class="mb-2">
-                            <a href="#" @click.prevent="selectedTab = 'summary'" :class="['flex items-center p-2 rounded hover:bg-tertiary',
-                                selectedTab === 'summary' && 'bg-tertiary']">
-                                <i
-                                    class="mdi mdi-view-dashboard mr-2 text-yellow-300"></i><span>Quick&nbsp;Summary</span>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="#" @click.prevent="selectedTab = 'period'" :class="['flex items-center p-2 rounded hover:bg-tertiary',
-                                selectedTab === 'period' && 'bg-tertiary']">
-                                <i class="mdi mdi-chart-line mr-2 text-yellow-300"></i><span>Period&nbsp;Chart</span>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a href="#" @click.prevent="selectedTab = 'course'" :class="['flex items-center p-2 rounded hover:bg-tertiary',
-                                selectedTab === 'course' && 'bg-tertiary']">
-                                <i class="mdi mdi-chart-bar mr-2 text-yellow-300"></i><span>Course&nbsp;Chart</span>
+                        <li v-for="tab in [
+                            { id: 'summary', label: 'Quick Summary', icon: 'mdi-view-dashboard' },
+                            { id: 'period', label: 'Period Chart', icon: 'mdi-chart-line' },
+                            { id: 'course', label: 'Course Chart', icon: 'mdi-chart-bar' }]" :key="tab.id"
+                            class="mb-2">
+                            <a href="#" @click.prevent="selectedTab = tab.id" :class="['flex items-center p-2 rounded hover:bg-tertiary',
+                                selectedTab === tab.id && 'bg-tertiary']">
+                                <i :class="['mdi', tab.icon, 'mr-2', 'text-yellow-300']"></i>
+                                <span v-text="tab.label"></span>
                             </a>
                         </li>
                         <li class="mb-2">
                             <a href="#" @click.prevent="logout" class="flex items-center p-2 rounded hover:bg-tertiary">
-                                <i class="mdi mdi-logout mr-2 text-yellow-300"></i><span>Log&nbsp;Out</span>
+                                <i class="mdi mdi-logout mr-2 text-yellow-300"></i><span>Log Out</span>
                             </a>
                         </li>
                     </ul>
@@ -271,26 +281,33 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
             <!-- MAIN -->
             <main class="flex-1 p-6 bg-white">
 
-                <!-- MOBILE TAB BUTTONS -->
+                <!-- MOBILE TABS -->
                 <div class="md:hidden mb-4 flex space-x-2">
-                    <button v-for="tab in ['summary', 'period', 'course']" :key="tab" @click="selectedTab = tab" :class="['px-3 py-1 rounded',
-                        selectedTab === tab ? 'bg-primary text-white' : 'bg-gray-200']">
-                        {{ tab.charAt(0).toUpperCase() + tab.slice(1) }}
+                    <button v-for="t in ['summary', 'period', 'course']" :key="t" @click="selectedTab = t" :class="['px-3 py-1 rounded',
+                        selectedTab === t ? 'bg-primary text-white' : 'bg-gray-200']">
+                        {{ t.charAt(0).toUpperCase() + t.slice(1) }}
                     </button>
                 </div>
 
                 <!-- FILTERS (hidden on summary) -->
                 <template v-if="selectedTab !== 'summary'">
-                    <!-- same filters block as earlier (unchanged) -->
-                    <!-- ... filters markup identical; omitted for brevity ... -->
-                    <!-- BEGIN FILTERS -->
                     <div class="p-4 bg-gray-50 border border-gray-200 rounded shadow-sm mb-6">
                         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">School&nbsp;Year</label>
-                                <input v-model="sy" type="text" placeholder="2024-2025"
-                                    class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                <label class="block text-sm font-medium text-gray-700">School Year</label>
+
+                                <select v-model="sy" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                                    <option value="">All</option>
+                                    <option value="2023-2024">2023-2024</option>
+                                    <option value="2024-2025">2024-2025</option>
+                                    <option value="2025-2026">2025-2026</option>
+                                    <option value="2026-2027">2026-2027</option>
+                                    <option value="2027-2028">2027-2028</option>
+                                    <option value="2028-2029">2028-2029</option>
+                                    <option value="2029-2030">2029-2030</option>
+                                </select>
                             </div>
+
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Semester</label>
                                 <select v-model="sem" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
@@ -300,18 +317,29 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                                     <option value="Summer">Summer</option>
                                 </select>
                             </div>
-                            <!-- period-only inputs -->
+
+                            <!-- Course / Major dropdowns (period tab only) -->
                             <template v-if="selectedTab === 'period'">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Course</label>
-                                    <input v-model="crs" type="text"
-                                        class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                    <select v-model="crs" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                                        <option value="">All Courses</option>
+                                        <option v-for="c in coursesList" :key="c.course" :value="c.course">
+                                            {{ c.course }}
+                                        </option>
+                                    </select>
                                 </div>
+
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Major</label>
-                                    <input v-model="mjr" type="text"
-                                        class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
+                                    <select v-model="mjr" class="mt-1 block w-full rounded border-gray-300 shadow-sm">
+                                        <option value="">All Majors</option>
+                                        <option v-for="m in majorsForCourse" :key="m" :value="m">
+                                            {{ m }}
+                                        </option>
+                                    </select>
                                 </div>
+
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700">Granularity</label>
                                     <select v-model="granularity"
@@ -325,12 +353,13 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                             </template>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Date&nbsp;Range</label>
+                                <label class="block text-sm font-medium text-gray-700">Date Range</label>
                                 <Datepicker v-model="dateRange" range multi-calendars format="yyyy-MM-dd"
                                     input-class="mt-1 block w-full rounded border-gray-300 shadow-sm" />
                             </div>
                         </div>
 
+                        <!-- APPLY -->
                         <div class="mt-4 flex justify-end">
                             <button v-if="selectedTab === 'period'" @click="fetchPeriodChart"
                                 class="inline-flex items-center px-4 py-2 bg-primary text-white rounded shadow">
@@ -342,7 +371,6 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                             </button>
                         </div>
                     </div>
-                    <!-- END FILTERS -->
                 </template>
 
                 <!-- COURSE VIEW TOGGLE -->
@@ -357,28 +385,25 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                     </button>
                 </div>
 
-                <!-- SUMMARY CARD GRID -->
+                <!-- SUMMARY CARDS -->
                 <div v-show="selectedTab === 'summary'">
                     <div v-if="loadingSummary" class="h-96 flex items-center justify-center">
                         <div class="border-4 border-gray-200 border-t-accent rounded-full w-16 h-16 animate-spin"></div>
                     </div>
                     <template v-else>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
                             <!-- DAILY -->
                             <div class="p-6 rounded shadow bg-blue-50 border-t-4 border-blue-500">
                                 <div class="flex items-center mb-2">
                                     <i class="mdi mdi-calendar-today text-3xl text-blue-600 mr-2"></i>
                                     <h3 class="text-lg font-bold text-blue-800">Daily</h3>
                                 </div>
-                                <p class="text-sm text-gray-600">
-                                    Today:
-                                    <span class="font-bold">{{ money(summaryData.daily?.now) }}</span>
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    Yesterday: {{ money(summaryData.daily?.prev) }}
-                                </p>
+                                <p class="text-sm text-gray-600">Today: <span class="font-bold">{{
+                                    money(summaryData.daily?.now) }}</span></p>
+                                <p class="text-sm text-gray-600">Yesterday: {{ money(summaryData.daily?.prev) }}</p>
                                 <p :class="['text-sm font-bold', pctColor(+summaryData.daily?.pct)]">
-                                    {{ summaryData.daily?.pct }} %
+                                    {{ summaryData.daily?.pct }} %
                                 </p>
                             </div>
 
@@ -388,15 +413,12 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                                     <i class="mdi mdi-calendar-month text-3xl text-green-600 mr-2"></i>
                                     <h3 class="text-lg font-bold text-green-800">Monthly</h3>
                                 </div>
-                                <p class="text-sm text-gray-600">
-                                    This&nbsp;Month:
-                                    <span class="font-bold">{{ money(summaryData.monthly?.now) }}</span>
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    Prev&nbsp;Month: {{ money(summaryData.monthly?.prev) }}
+                                <p class="text-sm text-gray-600">This&nbsp;Month: <span class="font-bold">{{
+                                    money(summaryData.monthly?.now) }}</span></p>
+                                <p class="text-sm text-gray-600">Prev&nbsp;Month: {{ money(summaryData.monthly?.prev) }}
                                 </p>
                                 <p :class="['text-sm font-bold', pctColor(+summaryData.monthly?.pct)]">
-                                    {{ summaryData.monthly?.pct }} %
+                                    {{ summaryData.monthly?.pct }} %
                                 </p>
                             </div>
 
@@ -406,19 +428,16 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                                     <i class="mdi mdi-calendar-range text-3xl text-yellow-600 mr-2"></i>
                                     <h3 class="text-lg font-bold text-yellow-800">Yearly</h3>
                                 </div>
-                                <p class="text-sm text-gray-600">
-                                    This&nbsp;Year:
-                                    <span class="font-bold">{{ money(summaryData.yearly?.now) }}</span>
-                                </p>
-                                <p class="text-sm text-gray-600">
-                                    Prev&nbsp;Year: {{ money(summaryData.yearly?.prev) }}
+                                <p class="text-sm text-gray-600">This&nbsp;Year: <span class="font-bold">{{
+                                    money(summaryData.yearly?.now) }}</span></p>
+                                <p class="text-sm text-gray-600">Prev&nbsp;Year: {{ money(summaryData.yearly?.prev) }}
                                 </p>
                                 <p :class="['text-sm font-bold', pctColor(+summaryData.yearly?.pct)]">
-                                    {{ summaryData.yearly?.pct }} %
+                                    {{ summaryData.yearly?.pct }} %
                                 </p>
                             </div>
-                        </div>
 
+                        </div>
                     </template>
                 </div>
 
@@ -441,7 +460,6 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
                     <template v-if="courseView === 'course'">
                         <BarChart :data="barChartData" :loading="false" class="h-96" />
                     </template>
-
                     <template v-else>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <BarChart :data="barChartData" :loading="false" class="h-96" />
@@ -457,7 +475,9 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
         <footer class="bg-primary p-4 text-center text-white">
             <p class="text-sm">
                 2024 © Admin Dashboard by
-                <a href="https://area51.ph" target="_blank" class="text-yellow-300 hover:underline">Area51 PH</a>
+                <a href="https://area51.ph" target="_blank" class="text-yellow-300 hover:underline">
+                    Area51 PH
+                </a>
             </p>
         </footer>
 
@@ -466,5 +486,5 @@ const logout = () => { uiLoading.value = true; window.location = '/' }
 </template>
 
 <style scoped>
-/* all colours handled inline / via Tailwind */
+/* all visual styles handled inline or by Tailwind */
 </style>

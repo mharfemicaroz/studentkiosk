@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
 import SignIn from "../auth/SigninPage.vue";
 import IndexPage from "../main/IndexPage.vue";
+import AdminPage from "../main/AdminPage.vue";
 import Error403 from "../main/ErrorPage.vue";
 import { verifyServer } from "@/routeGuard";
 
@@ -17,6 +18,11 @@ const router = createRouter({
       path: "/signin",
       name: "SignIn",
       component: SignIn,
+    },
+    {
+      path: "/admin",
+      name: "AdminPage",
+      component: AdminPage,
     },
     {
       path: "/notify",
